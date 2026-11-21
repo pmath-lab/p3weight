@@ -1,1 +1,2506 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>郵局小郵差：學睇磅大挑戰</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Noto Sans TC -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&display=swap" rel="stylesheet" />
 
+  <style>
+    /* =====================================================================
+       Core Theme, Layout & Animations
+       ===================================================================== */
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    html, body {
+      font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, 'PingFang HK', 'Microsoft JhengHei', sans-serif;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      overscroll-behavior: none;
+    }
+
+    /* Safe-area padding for notched phones in landscape */
+    .safe-x {
+      padding-left: max(0.5rem, env(safe-area-inset-left));
+      padding-right: max(0.5rem, env(safe-area-inset-right));
+    }
+
+    /* Classic HK Post Green & White Striped Top Trim */
+    .post-awning {
+      background: repeating-linear-gradient(
+        90deg,
+        #1b7a4c 0px,
+        #1b7a4c 26px,
+        #ffffff 26px,
+        #ffffff 52px
+      );
+    }
+
+    /* Tactile 3D Button Press */
+    .btn-game {
+      transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.12s ease, background-color 0.15s ease, border-color 0.15s ease;
+    }
+    .btn-game:active:not(:disabled) {
+      transform: translateY(2px) scale(0.98);
+    }
+
+    /* Customer Animations */
+    @keyframes customerWalkIn {
+      0% { transform: translateX(60px) translateY(10px); opacity: 0; }
+      65% { transform: translateX(-4px) translateY(-2px); opacity: 1; }
+      100% { transform: translateX(0) translateY(0); opacity: 1; }
+    }
+    .customer-enter {
+      animation: customerWalkIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    @keyframes customerBreathe {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-4px) scale(1.01); }
+    }
+    .customer-idle {
+      animation: customerBreathe 2.8s ease-in-out infinite;
+    }
+
+    @keyframes customerHappyBounce {
+      0%, 100% { transform: translateY(0) scale(1); }
+      25% { transform: translateY(-14px) scale(1.04); }
+      50% { transform: translateY(-2px) scale(1); }
+      75% { transform: translateY(-9px) scale(1.02); }
+    }
+    .customer-happy {
+      animation: customerHappyBounce 0.65s ease-in-out 2;
+    }
+
+    /* Speech Bubble Pop */
+    @keyframes bubblePop {
+      0% { transform: scale(0.92); opacity: 0; }
+      75% { transform: scale(1.02); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .animate-bubble {
+      animation: bubblePop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    /* Wrong Answer Shake */
+    @keyframes shakeX {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-6px); }
+      40% { transform: translateX(6px); }
+      60% { transform: translateX(-4px); }
+      80% { transform: translateX(4px); }
+    }
+    .animate-shake {
+      animation: shakeX 0.36s ease-in-out;
+    }
+
+    /* Subtle Stage Shake on Stamp Slam */
+    @keyframes stageThud {
+      0%, 100% { transform: translate(0, 0); }
+      25% { transform: translate(-2px, 3px); }
+      50% { transform: translate(2px, -2px); }
+      75% { transform: translate(-1px, 2px); }
+    }
+    .stage-thud {
+      animation: stageThud 0.22s ease-out;
+    }
+
+    /* Hint Pulse on Dial */
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 0.55; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.16); }
+    }
+    .hint-pulse {
+      animation: pulseGlow 1.1s ease-in-out infinite;
+      transform-box: fill-box;
+      transform-origin: center;
+    }
+
+    /* =====================================================================
+       Multi-Step Parcel Packaging & Shipping Overlay Animations
+       ===================================================================== */
+    #parcelBoxWrapper {
+      transition: transform 0.65s cubic-bezier(0.55, 0.055, 0.675, 0.19), opacity 0.5s ease;
+    }
+    .parcel-slide-out {
+      transform: translateX(135%) rotate(6deg) scale(0.82);
+      opacity: 0;
+    }
+
+    @keyframes boxPopUp {
+      0% { transform: scale(0.45) translateY(45px); opacity: 0; }
+      72% { transform: scale(1.05) translateY(-5px); opacity: 1; }
+      100% { transform: scale(1) translateY(0); opacity: 1; }
+    }
+    .box-enter {
+      animation: boxPopUp 0.36s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    @keyframes itemDropIntoBox {
+      0% { transform: translateY(-96%) scale(0.95); opacity: 0; }
+      20% { transform: translateY(-82%) scale(1); opacity: 1; }
+      38% { transform: translateY(-76%) scale(1); opacity: 1; }
+      86% { transform: translateY(48%) scale(0.78); opacity: 1; }
+      100% { transform: translateY(60%) scale(0.72); opacity: 0; }
+    }
+    .item-dropping {
+      animation: itemDropIntoBox 0.72s cubic-bezier(0.45, 0.05, 0.55, 0.95) forwards;
+    }
+
+    #flapLeft {
+      transform-origin: 34px 72px;
+      transition: transform 0.34s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    #flapRight {
+      transform-origin: 206px 72px;
+      transition: transform 0.34s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .flaps-closed #flapLeft {
+      transform: scaleY(0.16) skewX(12deg) translateY(2px);
+    }
+    .flaps-closed #flapRight {
+      transform: scaleY(0.16) skewX(-12deg) translateY(2px);
+    }
+
+    #packingTape {
+      transform-origin: 31px 73px;
+      transform: scaleX(0);
+      transition: transform 0.3s ease-out;
+    }
+    .tape-sealed #packingTape {
+      transform: scaleX(1);
+    }
+
+    #weightSticker {
+      opacity: 0;
+      transform: scale(1.45);
+      transform-origin: 80px 117px;
+      transition: transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+    }
+    .sticker-on #weightSticker {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    @keyframes stampSlam {
+      0% { transform: scale(2.6) rotate(-28deg); opacity: 0; }
+      65% { transform: scale(0.9) rotate(-11deg); opacity: 1; }
+      100% { transform: scale(1) rotate(-14deg); opacity: 0.96; }
+    }
+    #postedStamp {
+      opacity: 0;
+      transform-origin: 156px 127px;
+    }
+    .stamp-slammed #postedStamp {
+      animation: stampSlam 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    /* Mini Postage Stamp Perforated Edge */
+    .mini-stamp {
+      border: 2px dashed rgba(255, 255, 255, 0.85);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.16);
+      animation: bubblePop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    /* =====================================================================
+       16:9 Stage Container-Query Scaling (Min 14px, Proportional Scaling)
+       ===================================================================== */
+    #gameStage {
+      container-type: size;
+    }
+
+    .stage-speech-box {
+      padding: clamp(6px, 1.5cqh, 14px) clamp(10px, 1.6cqw, 18px);
+      border-radius: clamp(12px, 1.8cqw, 20px);
+    }
+    .stage-speech-text {
+      font-size: clamp(14px, 2.2cqw, 22px);
+      line-height: 1.4;
+    }
+    .stage-badge-text {
+      font-size: clamp(14px, 1.65cqw, 17px);
+      padding: clamp(2px, 0.4cqh, 4px) clamp(8px, 1.1cqw, 12px);
+    }
+    .stage-action-btn {
+      font-size: clamp(14px, 1.85cqw, 18px);
+      padding: clamp(5px, 1cqh, 9px) clamp(10px, 1.5cqw, 16px);
+    }
+    .stage-answer-panel {
+      padding: clamp(6px, 1.3cqh, 14px) clamp(8px, 1.4cqw, 14px);
+      border-radius: clamp(14px, 2.2cqw, 24px);
+    }
+    .stage-mc-grid {
+      gap: clamp(6px, 1.1cqw, 12px);
+    }
+    .stage-mc-btn {
+      font-size: clamp(18px, 2.75cqw, 28px);
+      padding: clamp(7px, 1.6cqh, 15px) clamp(8px, 1.1cqw, 14px);
+      border-radius: clamp(10px, 1.6cqw, 16px);
+    }
+    .stage-mc-btn-kg {
+      font-size: clamp(15px, 2.15cqw, 23px);
+      padding: clamp(8px, 1.6cqh, 15px) clamp(6px, 0.9cqw, 12px);
+      border-radius: clamp(10px, 1.6cqw, 16px);
+    }
+    .stage-kp-display {
+      font-size: clamp(18px, 2.9cqw, 28px);
+    }
+    .stage-kp-submit {
+      font-size: clamp(14px, 1.85cqw, 18px);
+      padding: clamp(6px, 1.1cqh, 10px) clamp(12px, 1.7cqw, 18px);
+      border-radius: clamp(10px, 1.5cqw, 16px);
+    }
+    .stage-kp-key {
+      font-size: clamp(15px, 2cqw, 19px);
+      padding: clamp(4px, 1cqh, 9px) 2px;
+      border-radius: clamp(7px, 1.1cqw, 12px);
+    }
+    .stage-status-pill {
+      font-size: clamp(14px, 1.85cqw, 18px);
+      padding: clamp(4px, 0.8cqh, 8px) clamp(12px, 1.8cqw, 18px);
+    }
+    .stage-modal-dial {
+      width: min(56cqh, 310px);
+      height: min(56cqh, 310px);
+    }
+
+    /* Ultra-Compact Top Bars for Landscape Phones (Keep Text >= 14px) */
+    @media (max-height: 540px) {
+      .post-awning {
+        height: 3px !important;
+      }
+      .compact-header-inner {
+        padding-top: 2px !important;
+        padding-bottom: 2px !important;
+      }
+      .compact-logo {
+        width: 28px !important;
+        height: 28px !important;
+        font-size: 16px !important;
+        border-radius: 8px !important;
+      }
+      .compact-title {
+        font-size: 15px !important;
+      }
+      .compact-subtitle {
+        display: none !important;
+      }
+      .compact-subbar {
+        padding-top: 2px !important;
+        padding-bottom: 2px !important;
+      }
+      .compact-stat-pill {
+        padding: 1px 8px !important;
+        font-size: 14px !important;
+      }
+      .compact-icon-btn {
+        width: 28px !important;
+        height: 28px !important;
+        font-size: 15px !important;
+      }
+      #stageViewport {
+        padding: 3px !important;
+      }
+    }
+
+    /* Friendly Rotate-to-Landscape Prompt on Portrait Phones */
+    #rotateOverlay {
+      display: none;
+    }
+    @media (max-width: 767px) and (orientation: portrait) {
+      body:not(.allow-portrait) #rotateOverlay {
+        display: flex;
+      }
+    }
+    @keyframes phoneTilt {
+      0%, 100% { transform: rotate(0deg); }
+      45%, 75% { transform: rotate(-90deg); }
+    }
+    .animate-phone-tilt {
+      animation: phoneTilt 2.2s ease-in-out infinite;
+    }
+
+    /* Hide scrollbars cleanly on horizontal pill strip */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* =====================================================================
+       iOS Liquid Glass Panel & 4-Color Glass Option Buttons
+       ===================================================================== */
+    .liquid-glass-panel {
+      background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.46) 0%,
+        rgba(255, 255, 255, 0.22) 52%,
+        rgba(255, 255, 255, 0.36) 100%
+      );
+      backdrop-filter: blur(22px) saturate(185%);
+      -webkit-backdrop-filter: blur(22px) saturate(185%);
+      border: 1.5px solid rgba(255, 255, 255, 0.68);
+      box-shadow:
+        0 14px 34px rgba(15, 23, 42, 0.18),
+        inset 0 1.5px 1.5px rgba(255, 255, 255, 0.88),
+        inset 0 -1.5px 2px rgba(255, 255, 255, 0.28);
+    }
+
+    .liquid-glass-input {
+      background: rgba(255, 255, 255, 0.56);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1.5px solid rgba(255, 255, 255, 0.78);
+      box-shadow:
+        inset 0 2px 5px rgba(15, 23, 42, 0.08),
+        0 1px 0 rgba(255, 255, 255, 0.65);
+    }
+
+    .liquid-glass-key {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.68) 0%, rgba(255, 255, 255, 0.42) 100%);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.78);
+      box-shadow:
+        0 3px 8px rgba(15, 23, 42, 0.09),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+      color: #0f172a;
+    }
+    .liquid-glass-key:hover {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.84) 0%, rgba(255, 255, 255, 0.6) 100%);
+    }
+
+    .mc-glass-opt {
+      border: 1.5px solid rgba(255, 255, 255, 0.62);
+      box-shadow:
+        0 6px 14px rgba(15, 23, 42, 0.14),
+        inset 0 1.5px 1px rgba(255, 255, 255, 0.55);
+      text-shadow: 0 1px 2px rgba(15, 23, 42, 0.22);
+    }
+    .mc-color-0 {
+      background: linear-gradient(135deg, rgba(14, 165, 233, 0.88) 0%, rgba(2, 132, 199, 0.92) 100%);
+      color: #ffffff;
+    }
+    .mc-color-0:hover:not(:disabled) {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.94) 0%, rgba(14, 165, 233, 0.96) 100%);
+    }
+    .mc-color-1 {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.88) 0%, rgba(217, 119, 6, 0.92) 100%);
+      color: #ffffff;
+    }
+    .mc-color-1:hover:not(:disabled) {
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.94) 0%, rgba(245, 158, 11, 0.96) 100%);
+    }
+    .mc-color-2 {
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.88) 0%, rgba(124, 58, 237, 0.92) 100%);
+      color: #ffffff;
+    }
+    .mc-color-2:hover:not(:disabled) {
+      background: linear-gradient(135deg, rgba(167, 139, 250, 0.94) 0%, rgba(139, 92, 246, 0.96) 100%);
+    }
+    .mc-color-3 {
+      background: linear-gradient(135deg, rgba(244, 63, 94, 0.88) 0%, rgba(225, 29, 72, 0.92) 100%);
+      color: #ffffff;
+    }
+    .mc-color-3:hover:not(:disabled) {
+      background: linear-gradient(135deg, rgba(251, 113, 133, 0.94) 0%, rgba(244, 63, 94, 0.96) 100%);
+    }
+  </style>
+</head>
+<body class="h-[100dvh] flex flex-col overflow-hidden bg-slate-100 select-none text-slate-800">
+
+  <!-- =====================================================================
+       PORTRAIT MOBILE ROTATE PROMPT (Recommended Landscape Experience)
+       ===================================================================== -->
+  <div id="rotateOverlay" class="fixed inset-0 z-[100] bg-[#145535]/95 backdrop-blur-md text-white flex-col items-center justify-center p-6 text-center">
+    <div class="w-20 h-20 rounded-3xl bg-white/15 border-2 border-white/30 flex items-center justify-center mb-5 shadow-xl">
+      <svg viewBox="0 0 64 64" class="w-12 h-12 animate-phone-tilt" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="18" y="8" width="28" height="48" rx="6" fill="rgba(255,255,255,0.14)" />
+        <line x1="28" y1="49" x2="36" y2="49" />
+      </svg>
+    </div>
+    <h2 class="text-2xl font-black mb-2 tracking-wide">請將手機打橫玩！</h2>
+    <p class="text-sm font-bold text-emerald-100 max-w-xs mb-6 leading-relaxed">
+      橫向螢幕可以睇得更清楚郵局櫃枱同磅面每一小格刻度，答題更輕鬆！
+    </p>
+    <button id="dismissRotateBtn" type="button"
+      class="btn-game bg-white/15 hover:bg-white/25 border border-white/40 text-white text-sm font-bold px-5 py-2.5 rounded-full">
+      仍然直向遊玩
+    </button>
+  </div>
+
+  <!-- =====================================================================
+       ROW 1: COMPACT TOP HEADER BAR
+       ===================================================================== -->
+  <header class="shrink-0 bg-white border-b border-slate-200 z-40">
+    <!-- Classic HK Post Striped Trim -->
+    <div class="post-awning h-1.5 w-full"></div>
+
+    <div class="compact-header-inner safe-x sm:px-4 py-1.5 flex items-center justify-between gap-2">
+      <!-- Left: Icon, Title, Badge & Subtitle -->
+      <div class="flex items-center gap-2 min-w-0">
+        <div class="compact-logo w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#1b7a4c] text-white flex items-center justify-center shadow-sm text-xl shrink-0 border-2 border-[#34a870]">
+          📮
+        </div>
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <h1 class="compact-title text-base sm:text-xl font-black tracking-tight text-[#145535] truncate">
+              郵局小郵差：學睇磅大挑戰
+            </h1>
+            <span class="hidden lg:inline-block text-sm font-black bg-emerald-50 text-[#1b7a4c] border border-emerald-200 px-2.5 py-0.5 rounded-full shrink-0">
+              香港小學數學
+            </span>
+          </div>
+          <p class="compact-subtitle text-sm font-bold text-slate-500 truncate">
+            一號窗口執勤中，幫街坊磅重、包裝同寄出包裹！
+          </p>
+        </div>
+      </div>
+
+      <!-- Right: Stats, Mode Toggle, Sound & Fullscreen Buttons -->
+      <div class="flex items-center gap-1 sm:gap-2 shrink-0">
+        <!-- Sent Count Pill -->
+        <div class="compact-stat-pill flex items-center gap-1 bg-emerald-50 border border-emerald-200 text-emerald-800 font-black px-2.5 py-1 rounded-full text-sm sm:text-base">
+          <span>📦</span>
+          <span class="hidden md:inline">已寄出</span>
+          <span id="sentCount" class="text-[#1b7a4c]">0</span>
+          <span class="text-sm font-bold text-emerald-600">件</span>
+        </div>
+
+        <!-- Streak Pill -->
+        <div class="compact-stat-pill flex items-center gap-1 bg-amber-50 border border-amber-200 text-amber-800 font-black px-2.5 py-1 rounded-full text-sm sm:text-base">
+          <span>🔥</span>
+          <span id="streakCount">0</span>
+          <span class="hidden md:inline text-sm font-bold text-amber-600">連勝</span>
+        </div>
+
+        <!-- Segmented Toggle: 選擇題 | 輸入數字 -->
+        <div class="flex bg-slate-100 p-0.5 rounded-full border border-slate-200">
+          <button type="button" data-mode="mc" class="mode-btn px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-sm font-black transition">
+            選擇題
+          </button>
+          <button type="button" data-mode="keypad" class="mode-btn px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-sm font-black transition">
+            輸入數字
+          </button>
+        </div>
+
+        <!-- Sound Toggle -->
+        <button id="soundBtn" type="button" aria-label="開關音效"
+          class="compact-icon-btn btn-game w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 border border-slate-200 flex items-center justify-center text-base">
+          🔊
+        </button>
+
+        <!-- Fullscreen Toggle (Auto-hidden if browser does not support Fullscreen API) -->
+        <button id="fullscreenBtn" type="button" aria-label="全螢幕切換"
+          class="compact-icon-btn btn-game hidden w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 border border-slate-200 items-center justify-center text-base">
+          ⛶
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- =====================================================================
+       ROW 2: SUB-HEADER FILTER & STAMP BOOK BAR
+       ===================================================================== -->
+  <div class="compact-subbar shrink-0 bg-slate-50 border-b border-slate-200 safe-x sm:px-4 py-1.5 flex items-center justify-between gap-2 text-sm z-40">
+    <!-- Left: Scale Filter Pills -->
+    <div class="flex items-center gap-1 sm:gap-1.5 overflow-x-auto no-scrollbar">
+      <span class="font-black text-slate-500 shrink-0 hidden md:inline">磅款：</span>
+      <button type="button" data-scale="mixed" class="scale-pill btn-game px-2.5 py-0.5 rounded-full text-sm font-black shrink-0">
+        隨機
+      </button>
+      <button type="button" data-scale="mixed_g" class="scale-pill btn-game px-2.5 py-0.5 rounded-full text-sm font-black shrink-0">
+        隨機g磅
+      </button>
+      <button type="button" data-scale="mixed_kg" class="scale-pill btn-game px-2.5 py-0.5 rounded-full text-sm font-black shrink-0">
+        隨機kg磅
+      </button>
+      <button type="button" data-scale="green" class="scale-pill btn-game px-2.5 py-0.5 rounded-full text-sm font-black shrink-0">
+        🟢 400g
+      </button>
+      <button type="button" data-scale="blue" class="scale-pill btn-game px-2.5 py-0.5 rounded-full text-sm font-black shrink-0">
+        🔵 500g
+      </button>
+      <button type="button" data-scale="orange" class="scale-pill btn-game px-2.5 py-0.5 rounded-full text-sm font-black shrink-0">
+        🟠 1000g
+      </button>
+      <button type="button" data-scale="kg2" class="scale-pill btn-game px-2.5 py-0.5 rounded-full text-sm font-black shrink-0">
+        🍑 2kg
+      </button>
+      <button type="button" data-scale="kg3" class="scale-pill btn-game px-2.5 py-0.5 rounded-full text-sm font-black shrink-0">
+        🟡 3kg
+      </button>
+      <button type="button" data-scale="kg5a" class="scale-pill btn-game px-2.5 py-0.5 rounded-full text-sm font-black shrink-0" title="5kg 粗刻度（每小格 200g）">
+        🍏 5kg
+      </button>
+      <button type="button" data-scale="kg5b" class="scale-pill btn-game px-2.5 py-0.5 rounded-full text-sm font-black shrink-0" title="5kg 細刻度（每小格 100g）">
+        🟢 5kg
+      </button>
+    </div>
+
+    <!-- Right: Postage Stamp Collection -->
+    <div class="flex items-center gap-1.5 shrink-0">
+      <span class="text-sm font-black text-slate-500 hidden lg:inline">郵票冊：</span>
+      <div id="stampCollection" class="flex items-center gap-1 min-h-[22px]">
+        <span class="text-sm font-bold text-slate-400 hidden sm:inline">寄出包裹即可收集郵票！</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       ROW 3: MAIN 16:9 GAME STAGE (2-LAYER BACKGROUND ARCHITECTURE)
+       ===================================================================== -->
+  <main id="stageViewport" class="flex-1 flex items-center justify-center p-1.5 sm:p-2 overflow-hidden bg-slate-200/70 relative safe-x">
+    <!-- Responsive 16:9 Stage Container (Exact aspect ratio maintained via JS + CSS) -->
+    <div id="gameStage" class="relative aspect-[16/9] rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl bg-[#f5efe6]">
+
+      <!-- LAYER 1 (z-10): BOTTOM BACKGROUND (post_office0.png) -->
+      <img
+        src="https://pmath-lab.github.io/p3weight/post_office0.png"
+        alt="郵局背景"
+        onerror="this.style.display='none'"
+        class="absolute inset-0 w-full h-full object-cover pointer-events-none z-10"
+      />
+
+      <!-- LAYER 2 (z-20): CUSTOMER CHARACTER BEHIND THE COUNTER -->
+      <div
+        id="customerLayer"
+        class="absolute right-[19%] bottom-[32%] w-[26%] aspect-square pointer-events-none z-20 flex items-end justify-center"
+      ></div>
+
+      <!-- LAYER 3 (z-30): TOP FOREGROUND COUNTER (post_office1.png) -->
+      <img
+        src="https://pmath-lab.github.io/p3weight/post_office1.png"
+        alt="郵局前景櫃枱"
+        onerror="this.style.display='none'"
+        class="absolute inset-0 w-full h-full object-cover pointer-events-none z-30"
+      />
+
+      <!-- =================================================================
+           LAYER 4 (z-40): INTERACTIVE UI LAYER (Speech, Controls, Scale, Answer Panel)
+           ================================================================= -->
+      <div class="absolute inset-0 z-40 pointer-events-none">
+
+        <!-- TOP-LEFT: Customer Speech Bubble -->
+        <div id="speechBubble"
+          class="stage-speech-box pointer-events-auto absolute top-[2.5%] left-[2.5%] w-[60%] max-w-[590px] bg-white/95 backdrop-blur-sm shadow-lg border-2 border-slate-200/90">
+          <div class="flex items-center justify-between gap-2 mb-0.5 sm:mb-1">
+            <span id="speakerNameTag" class="stage-badge-text inline-flex items-center font-black rounded-full bg-purple-100 text-purple-800">
+              陳婆婆
+            </span>
+            <span id="hintLevelBadge" class="stage-badge-text hidden font-black rounded-full bg-amber-200 text-amber-900">
+              💡 貼士 1/2
+            </span>
+          </div>
+          <p id="speechText" class="stage-speech-text font-bold text-slate-700">
+            載入中...
+          </p>
+        </div>
+
+        <!-- TOP-RIGHT: Hint & Magnifier Buttons -->
+        <div class="pointer-events-auto absolute top-[3%] right-[2.5%] flex flex-col gap-1.5 sm:gap-2">
+          <button id="hintBtn" type="button"
+            class="stage-action-btn btn-game flex items-center justify-center gap-1 bg-amber-100 hover:bg-amber-200 border-2 border-amber-300 text-amber-900 font-black rounded-full shadow-md disabled:opacity-50">
+            <span>💡</span><span>睇貼士</span>
+          </button>
+          <button id="zoomBtn" type="button"
+            class="stage-action-btn btn-game flex items-center justify-center gap-1 bg-sky-100 hover:bg-sky-200 border-2 border-sky-300 text-sky-900 font-black rounded-full shadow-md">
+            <span>🔍</span><span>放大磅面</span>
+          </button>
+        </div>
+
+        <!-- LEFT COUNTER: Interactive Kitchen Scale SVG -->
+        <div class="pointer-events-auto absolute left-[3.5%] bottom-[5%] w-[33%] max-w-[330px]">
+          <svg id="scaleSvg" viewBox="20 0 340 445" class="w-full h-auto overflow-visible drop-shadow-xl">
+            <defs>
+              <!-- Green Scale Gradients -->
+              <linearGradient id="gradGreenBody" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#84cc16" />
+                <stop offset="55%" stop-color="#65a30d" />
+                <stop offset="100%" stop-color="#4d7c0f" />
+              </linearGradient>
+              <linearGradient id="gradGreenPan" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#a3e635" />
+                <stop offset="100%" stop-color="#65a30d" />
+              </linearGradient>
+
+              <!-- Blue Scale Gradients -->
+              <linearGradient id="gradBlueBody" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#38bdf8" />
+                <stop offset="55%" stop-color="#0ea5e9" />
+                <stop offset="100%" stop-color="#0284c7" />
+              </linearGradient>
+              <linearGradient id="gradBluePan" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#7dd3fc" />
+                <stop offset="100%" stop-color="#0ea5e9" />
+              </linearGradient>
+
+              <!-- Orange Scale Gradients -->
+              <linearGradient id="gradOrangeBody" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#fb923c" />
+                <stop offset="55%" stop-color="#ea580c" />
+                <stop offset="100%" stop-color="#c2410c" />
+              </linearGradient>
+              <linearGradient id="gradOrangePan" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#fdba74" />
+                <stop offset="100%" stop-color="#ea580c" />
+              </linearGradient>
+
+              <!-- Yellow Scale Gradients (3 kg) -->
+              <linearGradient id="gradYellowBody" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#fde047" />
+                <stop offset="55%" stop-color="#eab308" />
+                <stop offset="100%" stop-color="#ca8a04" />
+              </linearGradient>
+              <linearGradient id="gradYellowPan" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#fef08a" />
+                <stop offset="100%" stop-color="#eab308" />
+              </linearGradient>
+
+              <!-- Peach Scale Gradients (2 kg) -->
+              <linearGradient id="gradPeachBody" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#fdba74" />
+                <stop offset="55%" stop-color="#f59e0b" />
+                <stop offset="100%" stop-color="#d97706" />
+              </linearGradient>
+              <linearGradient id="gradPeachPan" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#fed7aa" />
+                <stop offset="100%" stop-color="#f59e0b" />
+              </linearGradient>
+
+              <!-- Dial Face Gradient & Needle Shadow -->
+              <radialGradient id="dialFaceGrad" cx="42%" cy="36%" r="65%">
+                <stop offset="0%" stop-color="#ffffff" />
+                <stop offset="75%" stop-color="#f0f9ff" />
+                <stop offset="100%" stop-color="#e0f2fe" />
+              </radialGradient>
+              <filter id="needleShadow" x="-20%" y="-20%" width="140%" height="140%">
+                <feDropShadow dx="1" dy="2" stdDeviation="1.5" flood-color="#0f172a" flood-opacity="0.3" />
+              </filter>
+            </defs>
+
+            <!-- Weighing Pan & Item Group (Moves with Spring Physics) -->
+            <g id="panGroup">
+              <rect id="scaleStem" x="176" y="132" width="28" height="50" rx="6" fill="url(#gradOrangeBody)" stroke="rgba(0,0,0,0.16)" stroke-width="1.5" />
+              <!-- Dual Support Rods for kg Spring Scales -->
+              <g id="scaleDualRods" class="hidden">
+                <rect x="120" y="128" width="9" height="58" rx="4" fill="#64748b" stroke="rgba(0,0,0,0.22)" stroke-width="1.2" />
+                <rect x="251" y="128" width="9" height="58" rx="4" fill="#64748b" stroke="rgba(0,0,0,0.22)" stroke-width="1.2" />
+              </g>
+              <!-- Pan Bowl -->
+              <path id="panBowl" d="M 46,112 C 62,158 318,158 334,112 Z" fill="url(#gradOrangePan)" stroke="rgba(0,0,0,0.15)" stroke-width="1.5" />
+              <ellipse id="panTop" cx="190" cy="112" rx="144" ry="22" fill="url(#gradOrangePan)" stroke="rgba(255,255,255,0.55)" stroke-width="2" />
+              <ellipse cx="190" cy="113" rx="112" ry="13" fill="rgba(0,0,0,0.08)" />
+              <!-- Item Layer -->
+              <g id="itemLayer"></g>
+            </g>
+
+            <!-- Scale Body Base -->
+            <ellipse cx="190" cy="434" rx="126" ry="11" fill="#0f172a" opacity="0.18" />
+            <path id="scaleBodyPath"
+              d="M 102,188 C 122,164 258,164 278,188 L 314,398 C 317,420 304,432 282,432 L 98,432 C 76,432 63,420 66,398 Z"
+              fill="url(#gradOrangeBody)" stroke="rgba(0,0,0,0.15)" stroke-width="2" />
+            <!-- Gloss Highlight on Scale Body -->
+            <path d="M 118,186 C 142,172 238,172 262,186 C 234,180 146,180 118,186 Z" fill="#ffffff" opacity="0.35" />
+
+            <!-- Clickable Dial Face (Opens Magnifier Modal) -->
+            <g id="dialClickArea" class="cursor-pointer">
+              <circle cx="190" cy="312" r="108" fill="#0f172a" opacity="0.16" />
+              <circle cx="190" cy="312" r="102" fill="url(#dialFaceGrad)" stroke="#1e293b" stroke-width="3.5" />
+              <g id="hintOverlayLayer"></g>
+              <g id="dialTicksLayer"></g>
+              <text id="dialCapacityText" x="190" y="274" text-anchor="middle" font-size="18" font-weight="800" fill="#1e293b">1000 g</text>
+              <!-- Red Pointer Needle -->
+              <g id="needleGroup" transform="rotate(0, 190, 312)" filter="url(#needleShadow)">
+                <polygon points="190,224 185.5,312 183,332 197,332 194.5,312" fill="#ef4444" stroke="#b91c1c" stroke-width="0.8" stroke-linejoin="round" />
+                <circle cx="190" cy="312" r="7.5" fill="#ef4444" stroke="#b91c1c" stroke-width="1.2" />
+                <circle cx="190" cy="312" r="3" fill="#fee2e2" />
+              </g>
+            </g>
+          </svg>
+        </div>
+
+        <!-- BOTTOM-RIGHT: Answer Panel (iOS Liquid Glass: 4-Color MC / Touch Keypad) -->
+        <div class="stage-answer-panel pointer-events-auto absolute right-[2.2%] bottom-[2.8%] w-[50%] max-w-[490px] liquid-glass-panel">
+
+          <!-- Mode 1: Multiple Choice Grid (4 Colors Only) -->
+          <div id="mcArea" class="stage-mc-grid grid grid-cols-2">
+            <!-- Buttons injected dynamically -->
+          </div>
+
+          <!-- Mode 2: Number Keypad (iOS Liquid Glass) -->
+          <div id="keypadArea" class="hidden">
+            <div class="flex items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
+              <!-- Single-Unit Display (for g scales) -->
+              <div id="keypadGRow" class="flex-1 flex items-center justify-center gap-1 liquid-glass-input rounded-xl sm:rounded-2xl py-1 px-2">
+                <span id="keypadDisplay" class="stage-kp-display font-black tracking-wider text-slate-500/50">___</span>
+                <span class="stage-badge-text font-black text-slate-600">g</span>
+              </div>
+              <!-- Compound-Unit Display (for kg scales: _ kg ___ g) -->
+              <div id="keypadKgRow" class="hidden flex-1 flex items-center gap-1.5">
+                <button id="keypadKgBox" type="button" class="flex items-center justify-center gap-0.5 liquid-glass-input rounded-xl sm:rounded-2xl py-1 px-2.5 flex-[0.8] ring-2 ring-[#1b7a4c]">
+                  <span id="keypadKgDisplay" class="stage-kp-display font-black text-slate-500/50">_</span>
+                  <span class="stage-badge-text !px-0.5 font-black text-slate-600">kg</span>
+                </button>
+                <button id="keypadKgGBox" type="button" class="flex items-center justify-center gap-0.5 liquid-glass-input rounded-xl sm:rounded-2xl py-1 px-2 flex-[1.3]">
+                  <span id="keypadKgGDisplay" class="stage-kp-display font-black text-slate-500/50">___</span>
+                  <span class="stage-badge-text !px-0.5 font-black text-slate-600">g</span>
+                </button>
+              </div>
+              <button id="submitKeypadBtn" type="button"
+                class="stage-kp-submit btn-game bg-[#1b7a4c]/90 hover:bg-[#15623c] border border-white/50 text-white font-black shadow-md shrink-0 disabled:opacity-50">
+                寄出 📮
+              </button>
+            </div>
+            <div class="grid grid-cols-6 gap-1 sm:gap-1.5">
+              <button type="button" data-key="1" class="kp-btn stage-kp-key btn-game liquid-glass-key font-black">1</button>
+              <button type="button" data-key="2" class="kp-btn stage-kp-key btn-game liquid-glass-key font-black">2</button>
+              <button type="button" data-key="3" class="kp-btn stage-kp-key btn-game liquid-glass-key font-black">3</button>
+              <button type="button" data-key="4" class="kp-btn stage-kp-key btn-game liquid-glass-key font-black">4</button>
+              <button type="button" data-key="5" class="kp-btn stage-kp-key btn-game liquid-glass-key font-black">5</button>
+              <button type="button" data-key="back" class="kp-btn stage-kp-key btn-game bg-rose-500/25 hover:bg-rose-500/35 text-rose-800 border border-white/60 font-black shadow-sm">⌫</button>
+              <button type="button" data-key="6" class="kp-btn stage-kp-key btn-game liquid-glass-key font-black">6</button>
+              <button type="button" data-key="7" class="kp-btn stage-kp-key btn-game liquid-glass-key font-black">7</button>
+              <button type="button" data-key="8" class="kp-btn stage-kp-key btn-game liquid-glass-key font-black">8</button>
+              <button type="button" data-key="9" class="kp-btn stage-kp-key btn-game liquid-glass-key font-black">9</button>
+              <button type="button" data-key="0" class="kp-btn stage-kp-key btn-game liquid-glass-key font-black">0</button>
+              <button type="button" data-key="clear" class="kp-btn stage-kp-key btn-game bg-amber-400/35 hover:bg-amber-400/50 text-amber-950 border border-white/60 font-black shadow-sm">清除</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- =================================================================
+           LAYER 5A (z-50): PACKAGING & SHIPPING ANIMATION OVERLAY (ENLARGED 50% + 3-LAYER SANDWICH)
+           ================================================================= -->
+      <div id="packingOverlay" class="hidden absolute inset-0 z-50 pointer-events-none flex flex-col items-center justify-end pb-[6%]">
+        <div id="parcelBoxWrapper" class="w-[42%] max-w-[420px] flex flex-col items-center">
+          <!-- Status Pill positioned safely above the item drop zone -->
+          <div id="packingStatusPill" class="stage-status-pill relative z-40 mb-[18%] bg-[#1b7a4c] text-white font-black rounded-full shadow-lg border-2 border-white whitespace-nowrap">
+            📦 正在將物件放入紙箱...
+          </div>
+
+          <!-- 3-Layer Sandwich Container (Back z-10 / Dropping Item z-20 / Front z-30) -->
+          <div id="parcelSandwich" class="relative w-full aspect-[240/195]">
+
+            <!-- LAYER A (z-10): Cardboard Box Back Interior & Rear Flap -->
+            <svg id="parcelBackSvg" viewBox="0 0 240 195" class="absolute inset-0 w-full h-full overflow-visible pointer-events-none z-10">
+              <!-- Rear Top Flap -->
+              <polygon points="48,48 192,48 200,32 40,32" fill="#c68f56" stroke="#8b5a2b" stroke-width="2.2" stroke-linejoin="round" />
+              <!-- Dark Interior Cavity -->
+              <polygon points="34,72 206,72 192,48 48,48" fill="#7c4a1d" stroke="#5c3310" stroke-width="1.8" />
+              <polygon points="48,48 192,48 192,76 48,76" fill="#683b14" opacity="0.72" />
+            </svg>
+
+            <!-- LAYER B (z-20): Item Strictly Centered Horizontally & Dropping Vertically Into Box -->
+            <div id="parcelItemSlot" class="absolute left-1/2 -translate-x-1/2 top-[16%] w-[48%] aspect-[150/140] pointer-events-none z-20 flex items-center justify-center">
+              <div id="parcelDroppingItem" class="w-full h-full flex items-center justify-center"></div>
+            </div>
+
+            <!-- LAYER C (z-30): Cardboard Box Front Wall, Folding Flaps, Tape, Sticker & Stamp -->
+            <svg id="parcelFrontSvg" viewBox="0 0 240 195" class="absolute inset-0 w-full h-full overflow-visible pointer-events-none z-30 drop-shadow-2xl">
+              <!-- Front Box Wall (Naturally occludes the item once it drops below y=72) -->
+              <rect x="34" y="72" width="172" height="114" rx="5" fill="#d9a066" stroke="#8b5a2b" stroke-width="2.6" />
+              <rect x="36" y="170" width="168" height="14" rx="2" fill="#c2854b" opacity="0.65" />
+              <line x1="120" y1="72" x2="120" y2="104" stroke="#8b5a2b" stroke-width="1.8" opacity="0.5" />
+
+              <!-- Handle-Up Arrows -->
+              <g transform="translate(46, 152)" opacity="0.55" fill="#6b3e19">
+                <path d="M 0,12 L 7,0 L 14,12 Z" />
+                <path d="M 19,12 L 26,0 L 33,12 Z" />
+                <rect x="0" y="14.5" width="33" height="3" rx="1.2" />
+              </g>
+
+              <!-- Left & Right Top Folding Flaps -->
+              <polygon id="flapLeft" points="34,72 120,72 110,32 16,38" fill="#e6b883" stroke="#8b5a2b" stroke-width="2.4" stroke-linejoin="round" />
+              <polygon id="flapRight" points="206,72 120,72 130,32 224,38" fill="#dfad76" stroke="#8b5a2b" stroke-width="2.4" stroke-linejoin="round" />
+
+              <!-- Packing Tape -->
+              <g id="packingTape">
+                <rect x="31" y="65" width="178" height="16" rx="2.5" fill="#b4783c" opacity="0.95" stroke="#7c4a1d" stroke-width="1.4" />
+                <line x1="37" y1="70" x2="203" y2="70" stroke="#ffffff" stroke-width="1.8" opacity="0.4" />
+              </g>
+
+              <!-- White Weight Sticker -->
+              <g id="weightSticker">
+                <rect x="46" y="96" width="68" height="42" rx="5" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.8" />
+                <rect x="51" y="101" width="58" height="8.5" rx="2" fill="#1b7a4c" />
+                <text id="parcelWeightLabel" x="80" y="129" text-anchor="middle" font-size="16" font-weight="900" fill="#0f172a">860 g</text>
+              </g>
+
+              <!-- Red "已寄出 POSTED" Rubber Stamp -->
+              <g id="postedStamp">
+                <rect x="114" y="102" width="84" height="50" rx="7" fill="rgba(225, 29, 72, 0.12)" stroke="#e11d48" stroke-width="3.2" stroke-dasharray="7 2.5" />
+                <rect x="119" y="107" width="74" height="40" rx="4" fill="none" stroke="#e11d48" stroke-width="1.5" />
+                <text x="156" y="127" text-anchor="middle" font-size="18" font-weight="900" fill="#e11d48">已寄出</text>
+                <text x="156" y="142" text-anchor="middle" font-size="10.5" font-weight="900" fill="#e11d48" letter-spacing="1.2">POSTED</text>
+              </g>
+            </svg>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- =================================================================
+           LAYER 5B (z-50): MAGNIFIER MODAL (Zoomed-in Crisp Scale Dial)
+           ================================================================= -->
+      <div id="magnifierModal" class="hidden absolute inset-0 z-50 bg-slate-900/55 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4">
+        <div class="bg-white rounded-2xl sm:rounded-3xl shadow-2xl border-4 border-sky-200 p-2.5 sm:p-4 flex flex-col items-center max-w-[94%] max-h-[94%] animate-bubble relative">
+          <div class="w-full flex items-center justify-between gap-3 mb-1.5">
+            <div class="flex items-center gap-1.5">
+              <span class="stage-action-btn !p-0">🔍</span>
+              <h3 id="modalScaleTitle" class="stage-action-btn !p-0 font-black text-slate-800">放大磅面：1000 g 橙磅</h3>
+            </div>
+            <button id="closeMagnifierBtn" type="button"
+              class="stage-badge-text btn-game bg-slate-100 hover:bg-slate-200 text-slate-700 font-black rounded-full">
+              ✕ 關閉
+            </button>
+          </div>
+
+          <!-- Large Zoomed Dial SVG (Scales smoothly with stage height on landscape phones) -->
+          <div class="stage-modal-dial aspect-square">
+            <svg id="modalDialSvg" viewBox="78 200 224 224" class="w-full h-full drop-shadow-md">
+              <circle cx="190" cy="312" r="106" fill="#0f172a" opacity="0.12" />
+              <circle cx="190" cy="312" r="102" fill="url(#dialFaceGrad)" stroke="#1e293b" stroke-width="3.5" />
+              <g id="modalHintOverlayLayer"></g>
+              <g id="modalDialTicksLayer"></g>
+              <text id="modalDialCapacityText" x="190" y="274" text-anchor="middle" font-size="18" font-weight="800" fill="#1e293b">1000 g</text>
+              <g id="modalNeedleGroup" transform="rotate(0, 190, 312)" filter="url(#needleShadow)">
+                <polygon points="190,224 185.5,312 183,332 197,332 194.5,312" fill="#ef4444" stroke="#b91c1c" stroke-width="0.8" stroke-linejoin="round" />
+                <circle cx="190" cy="312" r="7.5" fill="#ef4444" stroke="#b91c1c" stroke-width="1.2" />
+                <circle cx="190" cy="312" r="3" fill="#fee2e2" />
+              </g>
+            </svg>
+          </div>
+
+          <p id="modalScaleSubtext" class="mt-1 stage-badge-text font-bold text-slate-500 text-center">
+            細心數清楚每 1 小格代表幾多克！
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- =====================================================================
+       GAME JAVASCRIPT ENGINE
+       ===================================================================== -->
+  <script>
+    (function () {
+      'use strict';
+
+      // Disable right-click context menu across the entire app
+      document.addEventListener('contextmenu', (e) => e.preventDefault());
+
+      /* ===================================================================
+         1. EXACT HONG KONG PRIMARY SCHOOL TEXTBOOK SCALES
+         =================================================================== */
+      const SCALES = {
+        green: {
+          id: 'green',
+          name: '400g 綠磅',
+          unit: 'g',
+          max: 400,
+          majorStep: 100,       // 0, 100, 200, 300
+          mediumStep: 50,       // 50, 150, 250, 350
+          smallStep: 10,        // 10g per small tick (40 divisions)
+          ticksPerMajor: 10,
+          bodyGrad: 'url(#gradGreenBody)',
+          panGrad: 'url(#gradGreenPan)'
+        },
+        blue: {
+          id: 'blue',
+          name: '500g 藍磅',
+          unit: 'g',
+          max: 500,
+          majorStep: 50,        // 0, 50, 100, ..., 450
+          mediumStep: null,
+          smallStep: 10,        // 10g per small tick (50 divisions)
+          ticksPerMajor: 5,
+          bodyGrad: 'url(#gradBlueBody)',
+          panGrad: 'url(#gradBluePan)'
+        },
+        orange: {
+          id: 'orange',
+          name: '1000g 橙磅',
+          unit: 'g',
+          max: 1000,
+          majorStep: 200,       // 0, 200, 400, 600, 800
+          mediumStep: 100,      // 100, 300, 500, 700, 900
+          smallStep: 20,        // 20g per small tick (50 divisions)
+          ticksPerMajor: 10,
+          bodyGrad: 'url(#gradOrangeBody)',
+          panGrad: 'url(#gradOrangePan)'
+        },
+        kg2: {
+          id: 'kg2',
+          name: '2kg 橙磅',
+          unit: 'kg',
+          max: 2000,
+          majorStep: 1000,      // 0, 1 (kg)
+          mediumStep: 500,      // 500g, 1500g
+          smallStep: 50,        // 50g per small tick (40 divisions)
+          ticksPerMajor: 20,
+          bodyGrad: 'url(#gradPeachBody)',
+          panGrad: 'url(#gradPeachPan)'
+        },
+        kg3: {
+          id: 'kg3',
+          name: '3kg 黃磅',
+          unit: 'kg',
+          max: 3000,
+          majorStep: 1000,      // 0, 1, 2 (kg)
+          mediumStep: 500,      // 500g, 1500g, 2500g
+          smallStep: 100,       // 100g per small tick (30 divisions)
+          ticksPerMajor: 10,
+          bodyGrad: 'url(#gradYellowBody)',
+          panGrad: 'url(#gradYellowPan)'
+        },
+        kg5a: {
+          id: 'kg5a',
+          name: '5kg 綠磅(粗)',
+          unit: 'kg',
+          max: 5000,
+          majorStep: 1000,      // 0, 1, 2, 3, 4 (kg)
+          mediumStep: null,
+          smallStep: 200,       // 200g per small tick (25 divisions)
+          ticksPerMajor: 5,
+          bodyGrad: 'url(#gradGreenBody)',
+          panGrad: 'url(#gradGreenPan)'
+        },
+        kg5b: {
+          id: 'kg5b',
+          name: '5kg 綠磅(細)',
+          unit: 'kg',
+          max: 5000,
+          majorStep: 1000,      // 0, 1, 2, 3, 4 (kg)
+          mediumStep: 500,      // 500g, 1500g, 2500g, 3500g, 4500g
+          smallStep: 100,       // 100g per small tick (50 divisions)
+          ticksPerMajor: 10,
+          bodyGrad: 'url(#gradGreenBody)',
+          panGrad: 'url(#gradGreenPan)'
+        }
+      };
+
+      /* ===================================================================
+         2. 6 EXPRESSIVE SVG CUSTOMERS (Behind the Counter)
+         =================================================================== */
+      const CUSTOMERS = [
+        {
+          id: 'grandma',
+          name: '陳婆婆',
+          tagBg: 'bg-purple-100 text-purple-800',
+          greeting: (item) => `郵差仔你好！麻煩幫我磅下呢${item.measure}<span class="text-rose-600 font-black">${item.name}</span>有幾重，我想寄俾外國嘅孫仔呀！`,
+          thanks: (label) => `太好喇！啱啱好係 <span class="text-[#1b7a4c] font-black">${label}</span>！多謝你幫我包得咁企理呀，乖仔！`,
+          renderSvg: (mood) => {
+            const mouth = mood === 'happy'
+              ? `<path d="M 86,106 Q 100,122 114,106 Z" fill="#be123c"/>`
+              : mood === 'hint'
+              ? `<path d="M 90,110 Q 100,104 110,110" fill="none" stroke="#9f1239" stroke-width="3.2" stroke-linecap="round"/>`
+              : `<path d="M 88,107 Q 100,116 112,107" fill="none" stroke="#9f1239" stroke-width="3.2" stroke-linecap="round"/>`;
+            return `
+              <svg viewBox="0 0 200 205" class="w-full h-full overflow-visible">
+                <circle cx="100" cy="36" r="22" fill="#cbd5e1" stroke="#94a3b8" stroke-width="2"/>
+                <path d="M 86,38 Q 100,26 114,38" fill="none" stroke="#e11d48" stroke-width="4.5" stroke-linecap="round"/>
+                <path d="M 32,205 C 36,144 62,132 100,132 C 138,132 164,144 168,205 Z" fill="#9333ea" stroke="#7e22ce" stroke-width="2.5"/>
+                <path d="M 78,134 L 100,176 L 122,134 Z" fill="#fef3c7"/>
+                <rect x="88" y="116" width="24" height="22" rx="8" fill="#fed7aa"/>
+                <circle cx="100" cy="86" r="42" fill="#fed7aa" stroke="#ea580c" stroke-opacity="0.22" stroke-width="2"/>
+                <path d="M 56,84 C 54,48 76,38 100,38 C 124,38 146,48 144,84 C 134,62 118,56 100,56 C 82,56 66,62 56,84 Z" fill="#cbd5e1" stroke="#94a3b8" stroke-width="2"/>
+                <g stroke="#334155" stroke-width="2.6" fill="rgba(255,255,255,0.42)">
+                  <circle cx="84" cy="86" r="12.5"/>
+                  <circle cx="116" cy="86" r="12.5"/>
+                  <line x1="96.5" y1="86" x2="103.5" y2="86"/>
+                </g>
+                <circle cx="84" cy="86" r="3.8" fill="#1e293b"/>
+                <circle cx="116" cy="86" r="3.8" fill="#1e293b"/>
+                <ellipse cx="70" cy="99" rx="7" ry="4" fill="#fb7185" opacity="0.45"/>
+                <ellipse cx="130" cy="99" rx="7" ry="4" fill="#fb7185" opacity="0.45"/>
+                ${mouth}
+              </svg>`;
+          }
+        },
+        {
+          id: 'athlete',
+          name: '運動員阿明',
+          tagBg: 'bg-sky-100 text-sky-800',
+          greeting: (item) => `哈囉！我要寄呢${item.measure}<span class="text-sky-600 font-black">${item.name}</span>俾隊友，麻煩幫我磅下佢有幾重呀！`,
+          thanks: (label) => `掂晒！<span class="text-[#1b7a4c] font-black">${label}</span> 準確無誤！效率超高，唔該晒小郵差！`,
+          renderSvg: (mood) => {
+            const mouth = mood === 'happy'
+              ? `<path d="M 84,104 Q 100,122 116,104 Z" fill="#e11d48"/>`
+              : mood === 'hint'
+              ? `<path d="M 88,108 L 112,106" fill="none" stroke="#1e293b" stroke-width="3.2" stroke-linecap="round"/>`
+              : `<path d="M 86,105 Q 100,115 114,105" fill="none" stroke="#1e293b" stroke-width="3.2" stroke-linecap="round"/>`;
+            return `
+              <svg viewBox="0 0 200 205" class="w-full h-full overflow-visible">
+                <path d="M 30,205 C 34,142 60,130 100,130 C 140,130 166,142 170,205 Z" fill="#0284c7" stroke="#0369a1" stroke-width="2.5"/>
+                <path d="M 74,132 L 100,154 L 126,132" fill="none" stroke="#facc15" stroke-width="6" stroke-linecap="round"/>
+                <text x="100" y="186" text-anchor="middle" font-size="22" font-weight="900" fill="#ffffff">10</text>
+                <rect x="87" y="114" width="26" height="22" rx="8" fill="#fdba74"/>
+                <circle cx="100" cy="84" r="42" fill="#fdba74" stroke="#c2410c" stroke-opacity="0.2" stroke-width="2"/>
+                <path d="M 56,74 C 54,42 74,30 100,32 C 126,30 146,44 144,74 L 136,58 L 120,62 L 104,50 L 86,62 L 68,56 Z" fill="#1e293b"/>
+                <rect x="57" y="57" width="86" height="12" rx="5" fill="#ef4444" stroke="#b91c1c" stroke-width="1.5"/>
+                <line x1="62" y1="63" x2="138" y2="63" stroke="#ffffff" stroke-width="2" opacity="0.7"/>
+                <circle cx="84" cy="86" r="4.6" fill="#1e293b"/>
+                <circle cx="116" cy="86" r="4.6" fill="#1e293b"/>
+                <circle cx="82.5" cy="84.5" r="1.5" fill="#ffffff"/>
+                <circle cx="114.5" cy="84.5" r="1.5" fill="#ffffff"/>
+                <ellipse cx="70" cy="96" rx="6" ry="3.5" fill="#f97316" opacity="0.35"/>
+                <ellipse cx="130" cy="96" rx="6" ry="3.5" fill="#f97316" opacity="0.35"/>
+                ${mouth}
+              </svg>`;
+          }
+        },
+        {
+          id: 'chef',
+          name: '甜品師莉莉',
+          tagBg: 'bg-rose-100 text-rose-800',
+          greeting: (item) => `你好呀！我準備好呢${item.measure}<span class="text-rose-600 font-black">${item.name}</span>想寄俾客人，唔該幫我磅一磅重呀！`,
+          thanks: (label) => `嘩，<span class="text-[#1b7a4c] font-black">${label}</span> 啱啱好！包得咁靚，客人收到一定好開心！`,
+          renderSvg: (mood) => {
+            const mouth = mood === 'happy'
+              ? `<path d="M 86,105 Q 100,120 114,105 Z" fill="#e11d48"/>`
+              : mood === 'hint'
+              ? `<circle cx="100" cy="108" r="4.5" fill="#e11d48"/>`
+              : `<path d="M 88,106 Q 100,114 112,106" fill="none" stroke="#be123c" stroke-width="3" stroke-linecap="round"/>`;
+            return `
+              <svg viewBox="0 0 200 205" class="w-full h-full overflow-visible">
+                <circle cx="64" cy="108" r="20" fill="#78350f"/>
+                <circle cx="136" cy="108" r="20" fill="#78350f"/>
+                <path d="M 34,205 C 38,145 62,132 100,132 C 138,132 162,145 166,205 Z" fill="#ffffff" stroke="#cbd5e1" stroke-width="2.5"/>
+                <!-- Pink Apron -->
+                <rect x="64" y="144" width="72" height="61" rx="6" fill="#f472b6" stroke="#db2777" stroke-width="2"/>
+                <line x1="74" y1="133" x2="74" y2="148" stroke="#db2777" stroke-width="4.5"/>
+                <line x1="126" y1="133" x2="126" y2="148" stroke="#db2777" stroke-width="4.5"/>
+                <rect x="88" y="116" width="24" height="20" rx="8" fill="#ffedd5"/>
+                <circle cx="100" cy="88" r="40" fill="#ffedd5" stroke="#fdba74" stroke-width="1.8"/>
+                <path d="M 60,82 C 62,56 80,50 100,50 C 120,50 138,56 140,82 C 126,68 112,64 100,66 C 88,64 74,68 60,82 Z" fill="#78350f"/>
+                <!-- White Chef Hat -->
+                <path d="M 68,54 C 54,40 66,18 84,22 C 92,10 110,10 116,22 C 134,18 146,40 132,54 Z" fill="#ffffff" stroke="#cbd5e1" stroke-width="2.2"/>
+                <rect x="68" y="48" width="64" height="12" rx="3" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.8"/>
+                <circle cx="84" cy="88" r="4.5" fill="#1e293b"/>
+                <circle cx="116" cy="88" r="4.5" fill="#1e293b"/>
+                <circle cx="82.5" cy="86.5" r="1.5" fill="#ffffff"/>
+                <circle cx="114.5" cy="86.5" r="1.5" fill="#ffffff"/>
+                <ellipse cx="70" cy="98" rx="7" ry="4" fill="#fb7185" opacity="0.5"/>
+                <ellipse cx="130" cy="98" rx="7" ry="4" fill="#fb7185" opacity="0.5"/>
+                ${mouth}
+              </svg>`;
+          }
+        },
+        {
+          id: 'student',
+          name: '學生仔樂仔',
+          tagBg: 'bg-amber-100 text-amber-800',
+          greeting: (item) => `郵差哥哥／姐姐！我想寄呢${item.measure}<span class="text-teal-600 font-black">${item.name}</span>俾好朋友，可唔可以幫我睇下幾重呀？`,
+          thanks: (label) => `耶！原來係 <span class="text-[#1b7a4c] font-black">${label}</span>！你好犀利呀，多謝你幫我寄出！`,
+          renderSvg: (mood) => {
+            const mouth = mood === 'happy'
+              ? `<path d="M 85,104 Q 100,120 115,104 Z" fill="#e11d48"/>`
+              : mood === 'hint'
+              ? `<path d="M 90,108 Q 100,103 110,108" fill="none" stroke="#1e293b" stroke-width="3" stroke-linecap="round"/>`
+              : `<path d="M 88,105 Q 100,114 112,105" fill="none" stroke="#1e293b" stroke-width="3" stroke-linecap="round"/>`;
+            return `
+              <svg viewBox="0 0 200 205" class="w-full h-full overflow-visible">
+                <!-- School Uniform Shirt & Navy Collar -->
+                <path d="M 36,205 C 40,146 64,134 100,134 C 136,134 160,146 164,205 Z" fill="#ffffff" stroke="#94a3b8" stroke-width="2.2"/>
+                <path d="M 68,134 L 100,162 L 132,134 L 122,130 L 100,148 L 78,130 Z" fill="#1e3a8a"/>
+                <polygon points="100,152 93,178 100,186 107,178" fill="#ef4444"/>
+                <rect x="89" y="116" width="22" height="20" rx="8" fill="#fed7aa"/>
+                <circle cx="100" cy="86" r="40" fill="#fed7aa" stroke="#fb923c" stroke-opacity="0.25" stroke-width="2"/>
+                <path d="M 60,80 C 60,50 80,42 100,42 C 120,42 140,50 140,80 C 128,66 114,62 100,62 C 86,62 72,66 60,80 Z" fill="#1e293b"/>
+                <path d="M 60,60 C 64,32 136,32 140,60 Z" fill="#38bdf8" stroke="#0284c7" stroke-width="2"/>
+                <path d="M 54,60 Q 100,52 152,62 Q 126,68 54,60 Z" fill="#0284c7"/>
+                <circle cx="84" cy="87" r="4.8" fill="#1e293b"/>
+                <circle cx="116" cy="87" r="4.8" fill="#1e293b"/>
+                <circle cx="82.5" cy="85.2" r="1.6" fill="#ffffff"/>
+                <circle cx="114.5" cy="85.2" r="1.6" fill="#ffffff"/>
+                <ellipse cx="70" cy="97" rx="6.5" ry="3.8" fill="#fb7185" opacity="0.45"/>
+                <ellipse cx="130" cy="97" rx="6.5" ry="3.8" fill="#fb7185" opacity="0.45"/>
+                ${mouth}
+              </svg>`;
+          }
+        },
+        {
+          id: 'grocer',
+          name: '水果檔強哥',
+          tagBg: 'bg-lime-100 text-lime-800',
+          greeting: (item) => `早晨呀小郵差！呢${item.measure}<span class="text-emerald-600 font-black">${item.name}</span>最新鮮架，幫我磅重寄俾熟客啦！`,
+          thanks: (label) => `哈哈！<span class="text-[#1b7a4c] font-black">${label}</span> 足秤又準確！多謝晒你幫忙！`,
+          renderSvg: (mood) => {
+            const mouth = mood === 'happy'
+              ? `<path d="M 84,108 Q 100,124 116,108 Z" fill="#be123c"/>`
+              : mood === 'hint'
+              ? `<path d="M 90,111 Q 100,107 110,111" fill="none" stroke="#1e293b" stroke-width="3" stroke-linecap="round"/>`
+              : `<path d="M 86,109 Q 100,117 114,109" fill="none" stroke="#1e293b" stroke-width="3" stroke-linecap="round"/>`;
+            return `
+              <svg viewBox="0 0 200 205" class="w-full h-full overflow-visible">
+                <path d="M 30,205 C 34,140 60,130 100,130 C 140,130 166,140 170,205 Z" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2.5"/>
+                <rect x="62" y="142" width="76" height="63" rx="6" fill="#16a34a" stroke="#15803d" stroke-width="2"/>
+                <line x1="72" y1="132" x2="72" y2="146" stroke="#15803d" stroke-width="5"/>
+                <line x1="128" y1="132" x2="128" y2="146" stroke="#15803d" stroke-width="5"/>
+                <path d="M 72,132 Q 100,148 128,132" fill="none" stroke="#fde047" stroke-width="9" stroke-linecap="round"/>
+                <rect x="86" y="114" width="28" height="22" rx="8" fill="#f6b984"/>
+                <circle cx="100" cy="84" r="43" fill="#f6b984" stroke="#c2410c" stroke-opacity="0.2" stroke-width="2"/>
+                <path d="M 56,74 C 58,40 80,34 100,34 C 120,34 142,40 144,74 C 132,56 116,52 100,52 C 84,52 68,56 56,74 Z" fill="#334155"/>
+                <path d="M 74,74 Q 84,69 92,74" fill="none" stroke="#334155" stroke-width="4" stroke-linecap="round"/>
+                <path d="M 108,74 Q 116,69 126,74" fill="none" stroke="#334155" stroke-width="4" stroke-linecap="round"/>
+                <circle cx="83" cy="85" r="4.2" fill="#1e293b"/>
+                <circle cx="117" cy="85" r="4.2" fill="#1e293b"/>
+                <!-- Friendly Mustache -->
+                <path d="M 80,101 Q 90,94 100,99 Q 110,94 120,101 Q 110,106 100,102 Q 90,106 80,101 Z" fill="#334155"/>
+                ${mouth}
+              </svg>`;
+          }
+        },
+        {
+          id: 'artist',
+          name: '文青阿美',
+          tagBg: 'bg-teal-100 text-teal-800',
+          greeting: (item) => `唔該晒！我想將呢${item.measure}<span class="text-teal-600 font-black">${item.name}</span>寄去台北，麻煩幫我磅下有幾重呀！`,
+          thanks: (label) => `原來係 <span class="text-[#1b7a4c] font-black">${label}</span>！個郵戳好有質感呀，唔該晒你！`,
+          renderSvg: (mood) => {
+            const mouth = mood === 'happy'
+              ? `<path d="M 88,105 Q 100,118 112,105 Z" fill="#e11d48"/>`
+              : mood === 'hint'
+              ? `<path d="M 91,108 Q 100,104 109,108" fill="none" stroke="#be123c" stroke-width="2.8" stroke-linecap="round"/>`
+              : `<path d="M 89,106 Q 100,113 111,106" fill="none" stroke="#be123c" stroke-width="2.8" stroke-linecap="round"/>`;
+            return `
+              <svg viewBox="0 0 200 205" class="w-full h-full overflow-visible">
+                <!-- Bob Hair -->
+                <path d="M 52,88 C 50,45 72,38 100,38 C 128,38 150,45 148,88 L 154,142 C 142,148 134,146 130,136 L 70,136 C 66,146 58,148 46,142 Z" fill="#451a03"/>
+                <!-- Yellow Sweater & Cozy Scarf -->
+                <path d="M 34,205 C 38,145 62,134 100,134 C 138,134 162,145 166,205 Z" fill="#eab308" stroke="#ca8a04" stroke-width="2.5"/>
+                <path d="M 70,132 Q 100,154 130,132 L 124,158 Q 100,168 76,158 Z" fill="#0d9488" stroke="#0f766e" stroke-width="1.8"/>
+                <rect x="108" y="150" width="16" height="36" rx="5" fill="#14b8a6" stroke="#0f766e" stroke-width="1.5"/>
+                <circle cx="100" cy="86" r="39" fill="#ffedd5" stroke="#fdba74" stroke-width="1.5"/>
+                <path d="M 61,80 C 64,52 84,48 100,48 C 116,48 136,52 139,80 C 124,64 108,60 94,64 C 80,68 68,72 61,80 Z" fill="#451a03"/>
+                <g stroke="#b45309" stroke-width="2" fill="rgba(255,255,255,0.25)">
+                  <circle cx="84" cy="87" r="11"/>
+                  <circle cx="116" cy="87" r="11"/>
+                  <line x1="95" y1="87" x2="105" y2="87"/>
+                </g>
+                <circle cx="84" cy="87" r="3.8" fill="#1e293b"/>
+                <circle cx="116" cy="87" r="3.8" fill="#1e293b"/>
+                <ellipse cx="71" cy="98" rx="6" ry="3.5" fill="#fb7185" opacity="0.45"/>
+                <ellipse cx="129" cy="98" rx="6" ry="3.5" fill="#fb7185" opacity="0.45"/>
+                ${mouth}
+              </svg>`;
+          }
+        }
+      ];
+
+      /* ===================================================================
+         3. 10 DETAILED SVG OBJECTS TO WEIGH & MAIL
+         =================================================================== */
+      const ITEMS = [
+        {
+          id: 'grapes', name: '紅提子', measure: '串',
+          scales: ['green', 'blue'], minW: 160, maxW: 390,
+          classicWeight: { green: 380 }, stampIcon: '🍇', stampColor: '#be123c',
+          renderSvg: () => `
+            <g transform="translate(190, 98)">
+              <path d="M 4,-54 Q 10,-68 22,-65" fill="none" stroke="#65a30d" stroke-width="5" stroke-linecap="round"/>
+              <path d="M 8,-58 C 22,-74 44,-66 36,-50 C 26,-45 14,-50 8,-58 Z" fill="#84cc16" stroke="#4d7c0f" stroke-width="1.5"/>
+              <circle cx="-48" cy="14" r="14" fill="#9f1239"/>
+              <circle cx="48" cy="14" r="14" fill="#9f1239"/>
+              <circle cx="-38" cy="-4" r="14" fill="#be123c"/>
+              <circle cx="38" cy="-4" r="14" fill="#be123c"/>
+              <circle cx="-24" cy="-24" r="14" fill="#be123c"/>
+              <circle cx="24" cy="-24" r="14" fill="#be123c"/>
+              <circle cx="0" cy="-40" r="14" fill="#be123c"/>
+              ${[[-34, 18], [-12, 20], [12, 20], [34, 18], [-24, 2], [0, 3], [24, 2], [-14, -16], [12, -16], [0, -30]].map(([cx, cy]) => `
+                <circle cx="${cx}" cy="${cy}" r="14.5" fill="#e11d48" stroke="#9f1239" stroke-width="1.2"/>
+                <ellipse cx="${cx - 4.5}" cy="${cy - 5}" rx="4.5" ry="2.8" transform="rotate(-25 ${cx - 4.5} ${cy - 5})" fill="#fda4af" opacity="0.75"/>
+              `).join('')}
+            </g>`
+        },
+        {
+          id: 'pineapple', name: '菠蘿', measure: '個',
+          scales: ['orange'], minW: 620, maxW: 960,
+          classicWeight: { orange: 860 }, stampIcon: '🍍', stampColor: '#d97706',
+          renderSvg: () => `
+            <g transform="translate(190, 74)">
+              <path d="M 0,-70 L -14,-28 L 14,-28 Z" fill="#16a34a" stroke="#15803d" stroke-width="1.2"/>
+              <path d="M -26,-62 L -20,-24 L -2,-30 Z" fill="#22c55e" stroke="#15803d" stroke-width="1.2"/>
+              <path d="M 26,-62 L 20,-24 L 2,-30 Z" fill="#22c55e" stroke="#15803d" stroke-width="1.2"/>
+              <path d="M -42,-44 L -24,-18 L -8,-26 Z" fill="#15803d"/>
+              <path d="M 42,-44 L 24,-18 L 8,-26 Z" fill="#15803d"/>
+              <rect x="-44" y="-32" width="88" height="86" rx="36" fill="#f59e0b" stroke="#b45309" stroke-width="2.2"/>
+              <g stroke="#92400e" stroke-width="2" opacity="0.65">
+                <line x1="-34" y1="-16" x2="34" y2="38"/><line x1="-18" y1="-28" x2="42" y2="20"/>
+                <line x1="-42" y1="6" x2="18" y2="52"/><line x1="34" y1="-16" x2="-34" y2="38"/>
+                <line x1="18" y1="-28" x2="-42" y2="20"/><line x1="42" y1="6" x2="-18" y2="52"/>
+              </g>
+              <g fill="#fef08a" opacity="0.8">
+                <circle cx="0" cy="-10" r="3"/><circle cx="-20" cy="4" r="3"/><circle cx="20" cy="4" r="3"/>
+                <circle cx="0" cy="18" r="3"/><circle cx="-20" cy="32" r="3"/><circle cx="20" cy="32" r="3"/>
+              </g>
+              <ellipse cx="-22" cy="-2" rx="8" ry="22" fill="#ffffff" opacity="0.22"/>
+            </g>`
+        },
+        {
+          id: 'volleyball', name: '排球', measure: '個',
+          scales: ['blue', 'green'], minW: 220, maxW: 360,
+          classicWeight: { blue: 270 }, stampIcon: '🏐', stampColor: '#0284c7',
+          renderSvg: () => `
+            <g transform="translate(190, 74)">
+              <defs><clipPath id="vbClip"><circle cx="0" cy="0" r="54"/></clipPath></defs>
+              <circle cx="0" cy="0" r="54" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+              <g clip-path="url(#vbClip)">
+                <path d="M -58,-18 Q -12,-35 28,-58 L 58,-22 Q 10,8 -58,10 Z" fill="#facc15" stroke="#ca8a04" stroke-width="1.5"/>
+                <path d="M -58,8 Q -15,18 14,58 L -32,60 Q -48,38 -58,8 Z" fill="#1d4ed8" stroke="#1e3a8a" stroke-width="1.5"/>
+                <path d="M -32,-58 Q -8,-10 -12,58 L -34,58 Q -28,-8 -54,-48 Z" fill="#2563eb" stroke="#1e3a8a" stroke-width="1.5"/>
+                <path d="M 18,-58 Q 52,-12 22,58 L 54,58 Q 68,-4 44,-58 Z" fill="#facc15" stroke="#ca8a04" stroke-width="1.5"/>
+                <circle cx="-16" cy="-18" r="38" fill="#ffffff" opacity="0.2"/>
+                <circle cx="0" cy="0" r="54" fill="none" stroke="#0f172a" stroke-opacity="0.16" stroke-width="6"/>
+              </g>
+            </g>`
+        },
+        {
+          id: 'soccer', name: '足球', measure: '個',
+          scales: ['orange', 'blue'], minW: 360, maxW: 520,
+          classicWeight: { orange: 420 }, stampIcon: '⚽', stampColor: '#1e3a8a',
+          renderSvg: () => `
+            <g transform="translate(190, 74)">
+              <defs><clipPath id="sbClip"><circle cx="0" cy="0" r="54"/></clipPath></defs>
+              <circle cx="0" cy="0" r="54" fill="#f8fafc" stroke="#94a3b8" stroke-width="2"/>
+              <g clip-path="url(#sbClip)">
+                <g stroke="#94a3b8" stroke-width="1.8">
+                  <line x1="0" y1="0" x2="0" y2="-54"/><line x1="0" y1="0" x2="48" y2="-18"/>
+                  <line x1="0" y1="0" x2="-48" y2="-18"/><line x1="0" y1="0" x2="32" y2="46"/><line x1="0" y1="0" x2="-32" y2="46"/>
+                </g>
+                <polygon points="0,-18 17,-6 11,14 -11,14 -17,-6" fill="#1e3a8a"/>
+                <polygon points="-48,-24 -32,-14 -36,6 -56,4" fill="#1d4ed8"/>
+                <polygon points="48,-24 32,-14 36,6 56,4" fill="#1d4ed8"/>
+                <polygon points="-22,36 0,48 -14,60 -36,52" fill="#1e3a8a"/>
+                <polygon points="22,36 0,48 14,60 36,52" fill="#1e3a8a"/>
+                <polygon points="-14,-56 14,-56 10,-42 -10,-42" fill="#1d4ed8"/>
+                <ellipse cx="-18" cy="-22" rx="18" ry="12" transform="rotate(-30 -18 -22)" fill="#ffffff" opacity="0.45"/>
+              </g>
+            </g>`
+        },
+        {
+          id: 'cookies', name: '曲奇餅盒', measure: '盒',
+          scales: ['blue', 'orange'], minW: 320, maxW: 780,
+          stampIcon: '🍪', stampColor: '#b45309',
+          renderSvg: () => `
+            <g transform="translate(190, 96)">
+              <ellipse cx="0" cy="24" rx="64" ry="15" fill="#1d4ed8" stroke="#1e3a8a" stroke-width="2"/>
+              <rect x="-64" y="-14" width="128" height="38" fill="#2563eb"/>
+              <line x1="-64" y1="-14" x2="-64" y2="24" stroke="#1e3a8a" stroke-width="2"/>
+              <line x1="64" y1="-14" x2="64" y2="24" stroke="#1e3a8a" stroke-width="2"/>
+              <ellipse cx="0" cy="-14" rx="64" ry="15" fill="#60a5fa" stroke="#1e3a8a" stroke-width="2"/>
+              <ellipse cx="0" cy="-14" rx="50" ry="10" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5"/>
+              <circle cx="0" cy="8" r="14" fill="#f59e0b" stroke="#92400e" stroke-width="1.5"/>
+              <circle cx="-5" cy="5" r="2.2" fill="#78350f"/><circle cx="5" cy="4" r="2.2" fill="#78350f"/>
+              <circle cx="0" cy="12" r="2.2" fill="#78350f"/>
+            </g>`
+        },
+        {
+          id: 'teddy', name: '毛公仔', measure: '隻',
+          scales: ['green', 'blue', 'orange'], minW: 160, maxW: 560,
+          stampIcon: '🧸', stampColor: '#92400e',
+          renderSvg: () => `
+            <g transform="translate(190, 82)">
+              <circle cx="-24" cy="-38" r="12" fill="#b45309" stroke="#78350f" stroke-width="1.8"/>
+              <circle cx="-24" cy="-38" r="6" fill="#fcd34d"/>
+              <circle cx="24" cy="-38" r="12" fill="#b45309" stroke="#78350f" stroke-width="1.8"/>
+              <circle cx="24" cy="-38" r="6" fill="#fcd34d"/>
+              <ellipse cx="0" cy="18" rx="30" ry="28" fill="#b45309" stroke="#78350f" stroke-width="2"/>
+              <ellipse cx="0" cy="20" rx="17" ry="16" fill="#fde68a"/>
+              <ellipse cx="-30" cy="8" rx="11" ry="8" transform="rotate(-25 -30 8)" fill="#b45309" stroke="#78350f" stroke-width="1.5"/>
+              <ellipse cx="30" cy="8" rx="11" ry="8" transform="rotate(25 30 8)" fill="#b45309" stroke="#78350f" stroke-width="1.5"/>
+              <circle cx="-18" cy="40" r="11" fill="#92400e"/><circle cx="18" cy="40" r="11" fill="#92400e"/>
+              <circle cx="0" cy="-18" r="24" fill="#b45309" stroke="#78350f" stroke-width="2"/>
+              <ellipse cx="0" cy="-11" rx="11" ry="8" fill="#fde68a"/>
+              <circle cx="-8" cy="-22" r="3" fill="#1e293b"/><circle cx="8" cy="-22" r="3" fill="#1e293b"/>
+              <ellipse cx="0" cy="-14" rx="4.5" ry="3" fill="#1e293b"/>
+              <polygon points="0,0 -10,-6 -10,6" fill="#ef4444"/><polygon points="0,0 10,-6 10,6" fill="#ef4444"/>
+              <circle cx="0" cy="0" r="3" fill="#b91c1c"/>
+            </g>`
+        },
+        {
+          id: 'book', name: '故事書', measure: '本',
+          scales: ['green', 'blue', 'orange'], minW: 150, maxW: 660,
+          stampIcon: '📖', stampColor: '#0d9488',
+          renderSvg: () => `
+            <g transform="translate(190, 102)">
+              <path d="M -58,12 L -40,-20 L 58,-20 L 42,12 Z" fill="#14b8a6" stroke="#0f766e" stroke-width="2"/>
+              <path d="M -58,12 L 42,12 L 42,26 L -58,26 Z" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.8"/>
+              <path d="M 42,12 L 58,-20 L 58,-6 L 42,26 Z" fill="#cbd5e1" stroke="#64748b" stroke-width="1.5"/>
+              <line x1="-54" y1="19" x2="38" y2="19" stroke="#cbd5e1" stroke-width="1.5"/>
+              <rect x="-26" y="-12" width="44" height="14" rx="4" fill="#fef08a"/>
+            </g>`
+        },
+        {
+          id: 'apple', name: '紅蘋果', measure: '個',
+          scales: ['green', 'blue'], minW: 120, maxW: 290,
+          stampIcon: '🍎', stampColor: '#dc2626',
+          renderSvg: () => `
+            <g transform="translate(190, 88)">
+              <path d="M 0,-40 Q 4,-56 12,-58" fill="none" stroke="#78350f" stroke-width="5" stroke-linecap="round"/>
+              <path d="M 5,-48 C 20,-62 36,-54 28,-40 C 18,-38 10,-42 5,-48 Z" fill="#22c55e" stroke="#15803d" stroke-width="1.5"/>
+              <path d="M 0,-32 C -24,-46 -50,-22 -44,12 C -38,38 -16,44 0,36 C 16,44 38,38 44,12 C 50,-22 24,-46 0,-32 Z"
+                fill="#ef4444" stroke="#b91c1c" stroke-width="2"/>
+              <ellipse cx="-20" cy="-8" rx="9" ry="18" transform="rotate(15 -20 -8)" fill="#ffffff" opacity="0.32"/>
+            </g>`
+        },
+        {
+          id: 'gift', name: '禮物盒', measure: '份',
+          scales: ['green', 'blue', 'orange'], minW: 180, maxW: 880,
+          stampIcon: '🎁', stampColor: '#9333ea',
+          renderSvg: () => `
+            <g transform="translate(190, 90)">
+              <rect x="-46" y="-22" width="92" height="62" rx="6" fill="#ec4899" stroke="#be185d" stroke-width="2"/>
+              <rect x="-52" y="-34" width="104" height="18" rx="5" fill="#f472b6" stroke="#be185d" stroke-width="2"/>
+              <rect x="-10" y="-34" width="20" height="74" fill="#fde047" stroke="#ca8a04" stroke-width="1.2"/>
+              <path d="M 0,-34 C -24,-56 -36,-34 -6,-30 Z" fill="#facc15" stroke="#ca8a04" stroke-width="1.6"/>
+              <path d="M 0,-34 C 24,-56 36,-34 6,-30 Z" fill="#facc15" stroke="#ca8a04" stroke-width="1.6"/>
+              <circle cx="0" cy="-34" r="6" fill="#eab308" stroke="#ca8a04" stroke-width="1.5"/>
+            </g>`
+        },
+        {
+          id: 'chocolate', name: '朱古力', measure: '盒',
+          scales: ['green', 'blue'], minW: 90, maxW: 340,
+          stampIcon: '🍫', stampColor: '#7c2d12',
+          renderSvg: () => `
+            <g transform="translate(190, 96)">
+              <rect x="-58" y="-20" width="116" height="46" rx="8" fill="#7c2d12" stroke="#451a03" stroke-width="2.2"/>
+              <rect x="-50" y="-12" width="100" height="30" rx="4" fill="#9a3412" stroke="#fbbf24" stroke-width="1.5"/>
+              <path d="M -58,3 L 58,3" stroke="#fbbf24" stroke-width="4"/>
+              <circle cx="0" cy="3" r="13" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+              <path d="M -6,3 Q 0,-5 6,3 Q 0,10 -6,3 Z" fill="#7c2d12"/>
+            </g>`
+        },
+        {
+          id: 'pomelo', name: '大柚子', measure: '個',
+          scales: ['kg5a', 'kg5b', 'kg3', 'kg2'], minW: 1100, maxW: 2600,
+          classicWeight: { kg5a: 1600 }, stampIcon: '🍈', stampColor: '#65a30d',
+          renderSvg: () => `
+            <g transform="translate(190, 72)">
+              <path d="M 0,-56 Q 6,-68 18,-66" fill="none" stroke="#4d7c0f" stroke-width="5" stroke-linecap="round"/>
+              <path d="M 6,-60 C 22,-74 42,-64 32,-50 C 22,-46 12,-52 6,-60 Z" fill="#65a30d" stroke="#3f6212" stroke-width="1.5"/>
+              <path d="M 0,-54 C -28,-54 -56,-14 -54,18 C -52,48 -28,58 0,58 C 28,58 52,48 54,18 C 56,-14 28,-54 0,-54 Z"
+                fill="#a3e635" stroke="#4d7c0f" stroke-width="2.2"/>
+              <path d="M -26,-26 C -42,-8 -44,24 -32,42" fill="none" stroke="#ecfccb" stroke-width="6" stroke-linecap="round" opacity="0.55"/>
+              <g fill="#65a30d" opacity="0.35">
+                <circle cx="-16" cy="4" r="2.2"/><circle cx="14" cy="-8" r="2.2"/><circle cx="28" cy="14" r="2.2"/>
+                <circle cx="-6" cy="28" r="2.2"/><circle cx="18" cy="34" r="2.2"/><circle cx="-28" cy="24" r="2.2"/>
+              </g>
+            </g>`
+        },
+        {
+          id: 'coconut', name: '椰子', measure: '個',
+          scales: ['kg3', 'kg2', 'kg5a', 'kg5b'], minW: 1100, maxW: 2400,
+          classicWeight: { kg3: 1900 }, stampIcon: '🥥', stampColor: '#78350f',
+          renderSvg: () => `
+            <g transform="translate(190, 74)">
+              <ellipse cx="0" cy="4" rx="52" ry="50" fill="#92400e" stroke="#451a03" stroke-width="2.4"/>
+              <path d="M -38,-22 Q -10,-36 22,-30" fill="none" stroke="#b45309" stroke-width="4" stroke-linecap="round" opacity="0.7"/>
+              <path d="M -44,8 Q 0,-4 44,12" fill="none" stroke="#78350f" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
+              <path d="M -36,30 Q 6,22 38,32" fill="none" stroke="#b45309" stroke-width="3.2" stroke-linecap="round" opacity="0.65"/>
+              <circle cx="-12" cy="-14" r="5" fill="#451a03"/>
+              <circle cx="8" cy="-16" r="5" fill="#451a03"/>
+              <circle cx="-1" cy="-2" r="5.5" fill="#451a03"/>
+              <ellipse cx="-24" cy="-20" rx="10" ry="18" transform="rotate(22 -24 -20)" fill="#fde68a" opacity="0.16"/>
+            </g>`
+        },
+        {
+          id: 'carrots', name: '紅蘿蔔', measure: '束',
+          scales: ['kg5b', 'kg5a', 'kg3', 'kg2'], minW: 900, maxW: 3600,
+          classicWeight: { kg5b: 2400 }, stampIcon: '🥕', stampColor: '#ea580c',
+          renderSvg: () => `
+            <g transform="translate(190, 96)">
+              <!-- Leafy Greens -->
+              <path d="M 46,-20 C 66,-34 74,-18 54,-10 Z" fill="#22c55e" stroke="#15803d" stroke-width="1.4"/>
+              <path d="M 48,-8 C 72,-12 72,6 50,4 Z" fill="#16a34a" stroke="#15803d" stroke-width="1.4"/>
+              <!-- Back Carrot -->
+              <path d="M -48,-12 L 42,-28 C 52,-28 54,-8 44,-6 L -48,2 Z" fill="#fb923c" stroke="#c2410c" stroke-width="1.8"/>
+              <!-- Middle Carrot -->
+              <path d="M -56,6 L 46,-10 C 56,-10 58,12 46,14 L -56,20 Z" fill="#f97316" stroke="#c2410c" stroke-width="2"/>
+              <!-- Front Carrot -->
+              <path d="M -42,22 L 44,10 C 54,10 54,30 42,32 L -42,34 Z" fill="#ea580c" stroke="#9a3412" stroke-width="2"/>
+              <g stroke="#9a3412" stroke-width="1.6" stroke-linecap="round" opacity="0.55">
+                <line x1="-18" y1="-2" x2="-16" y2="10"/><line x1="8" y1="-5" x2="10" y2="9"/>
+                <line x1="28" y1="-7" x2="30" y2="8"/><line x1="-8" y1="18" x2="-6" y2="30"/>
+                <line x1="20" y1="15" x2="22" y2="28"/>
+              </g>
+            </g>`
+        },
+        {
+          id: 'corn', name: '粟米', measure: '袋',
+          scales: ['kg2', 'kg3'], minW: 650, maxW: 1750,
+          classicWeight: { kg2: 1050 }, stampIcon: '🌽', stampColor: '#eab308',
+          renderSvg: () => `
+            <g transform="translate(190, 92)">
+              <!-- Back Corn -->
+              <g transform="rotate(-12)">
+                <rect x="-52" y="-26" width="96" height="32" rx="16" fill="#facc15" stroke="#ca8a04" stroke-width="2"/>
+                <path d="M -54,-10 C -26,-2 16,-4 48,-24 C 36,10 -12,18 -54,-10 Z" fill="#84cc16" stroke="#4d7c0f" stroke-width="1.6"/>
+              </g>
+              <!-- Front Corn -->
+              <g transform="translate(4, 14) rotate(6)">
+                <rect x="-56" y="-18" width="102" height="34" rx="17" fill="#fde047" stroke="#ca8a04" stroke-width="2"/>
+                <g fill="#eab308" opacity="0.65">
+                  <circle cx="-32" cy="-6" r="3.2"/><circle cx="-18" cy="-6" r="3.2"/><circle cx="-4" cy="-6" r="3.2"/><circle cx="10" cy="-6" r="3.2"/><circle cx="24" cy="-6" r="3.2"/>
+                  <circle cx="-25" cy="4" r="3.2"/><circle cx="-11" cy="4" r="3.2"/><circle cx="3" cy="4" r="3.2"/><circle cx="17" cy="4" r="3.2"/>
+                </g>
+                <path d="M -58,0 C -22,12 18,8 50,-10 C 38,20 -14,28 -58,0 Z" fill="#65a30d" stroke="#3f6212" stroke-width="1.8"/>
+              </g>
+            </g>`
+        },
+        {
+          id: 'watermelon', name: '大西瓜', measure: '個',
+          scales: ['kg5a', 'kg5b', 'kg3'], minW: 1800, maxW: 4600,
+          stampIcon: '🍉', stampColor: '#15803d',
+          renderSvg: () => `
+            <g transform="translate(190, 74)">
+              <ellipse cx="0" cy="2" rx="58" ry="52" fill="#22c55e" stroke="#14532d" stroke-width="2.4"/>
+              <path d="M -32,-44 C -44,-14 -44,20 -30,46" fill="none" stroke="#15803d" stroke-width="9" stroke-linecap="round"/>
+              <path d="M 0,-50 C -4,-16 -4,18 0,52" fill="none" stroke="#15803d" stroke-width="9" stroke-linecap="round"/>
+              <path d="M 32,-44 C 44,-14 44,20 30,46" fill="none" stroke="#15803d" stroke-width="9" stroke-linecap="round"/>
+              <path d="M 0,-50 Q 6,-62 18,-58" fill="none" stroke="#166534" stroke-width="4.5" stroke-linecap="round"/>
+              <ellipse cx="-24" cy="-22" rx="12" ry="18" transform="rotate(25 -24 -22)" fill="#ffffff" opacity="0.22"/>
+            </g>`
+        },
+        {
+          id: 'rice', name: '香米', measure: '包',
+          scales: ['kg2', 'kg3', 'kg5a', 'kg5b'], minW: 1000, maxW: 4500,
+          stampIcon: '🌾', stampColor: '#d97706',
+          renderSvg: () => `
+            <g transform="translate(190, 82)">
+              <rect x="-48" y="-36" width="96" height="82" rx="14" fill="#fef3c7" stroke="#b45309" stroke-width="2.2"/>
+              <rect x="-48" y="-36" width="96" height="16" rx="6" fill="#dc2626" stroke="#991b1b" stroke-width="1.8"/>
+              <circle cx="0" cy="10" r="24" fill="#ffffff" stroke="#f59e0b" stroke-width="2"/>
+              <text x="0" y="18" text-anchor="middle" font-size="24" font-weight="900" fill="#b45309">米</text>
+            </g>`
+        }
+      ];
+
+      /* ===================================================================
+         4. WEB AUDIO API SOUND SYNTHESIZER
+         =================================================================== */
+      let audioCtx = null;
+      let isMuted = false;
+
+      function ensureAudio() {
+        if (isMuted) return null;
+        if (!audioCtx) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (AC) audioCtx = new AC();
+        }
+        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+        return audioCtx;
+      }
+
+      function playSound(type) {
+        const ctx = ensureAudio();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+
+        if (type === 'bell') {
+          [1174.66, 2349.32].forEach((freq, i) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now);
+            gain.gain.setValueAtTime(i === 0 ? 0.12 : 0.04, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+            osc.connect(gain).connect(ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.52);
+          });
+        } else if (type === 'click') {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(620, now);
+          gain.gain.setValueAtTime(0.07, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+          osc.connect(gain).connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.06);
+        } else if (type === 'drop') {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(185, now);
+          osc.frequency.exponentialRampToValueAtTime(75, now + 0.12);
+          gain.gain.setValueAtTime(0.14, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.13);
+          osc.connect(gain).connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.14);
+        } else if (type === 'correct') {
+          [523.25, 659.25, 783.99, 1046.5].forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, now + idx * 0.065);
+            gain.gain.setValueAtTime(0.13, now + idx * 0.065);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.065 + 0.24);
+            osc.connect(gain).connect(ctx.destination);
+            osc.start(now + idx * 0.065);
+            osc.stop(now + idx * 0.065 + 0.25);
+          });
+        } else if (type === 'wrong') {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(240, now);
+          osc.frequency.exponentialRampToValueAtTime(175, now + 0.17);
+          osc.frequency.exponentialRampToValueAtTime(210, now + 0.28);
+          gain.gain.setValueAtTime(0.14, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+          osc.connect(gain).connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.32);
+        } else if (type === 'tape') {
+          const bufferSize = ctx.sampleRate * 0.18;
+          const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+          const noise = ctx.createBufferSource();
+          noise.buffer = buffer;
+          const filter = ctx.createBiquadFilter();
+          filter.type = 'bandpass';
+          filter.frequency.setValueAtTime(2400, now);
+          const gain = ctx.createGain();
+          gain.gain.setValueAtTime(0.09, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+          noise.connect(filter).connect(gain).connect(ctx.destination);
+          noise.start(now);
+        } else if (type === 'stamp') {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(150, now);
+          osc.frequency.exponentialRampToValueAtTime(46, now + 0.14);
+          gain.gain.setValueAtTime(0.28, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+          osc.connect(gain).connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.17);
+        } else if (type === 'whoosh') {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(280, now);
+          osc.frequency.exponentialRampToValueAtTime(640, now + 0.25);
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.26);
+          osc.connect(gain).connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.28);
+        }
+      }
+
+      /* ===================================================================
+         5. GAME STATE & DOM REFERENCES
+         =================================================================== */
+      const state = {
+        scaleFilter: 'mixed',     // 'mixed' | 'green' | 'blue' | 'orange' | 'kg2' | 'kg3' | 'kg5a' | 'kg5b'
+        inputMode: 'mc',          // 'mc' | 'keypad'
+        sentCount: 0,
+        streak: 0,
+        collectedStamps: [],
+        keypadValue: '',
+        keypadKgValue: '',
+        keypadActiveField: 'kg',  // 'kg' | 'g' when using kg scales
+
+        currentCustomer: CUSTOMERS[0],
+        lastCustomerId: null,
+        currentScale: SCALES.orange,
+        currentItem: ITEMS[1],
+        targetWeight: 860,
+        hintLevel: 0,             // 0 = none, 1 = major tick hint, 2 = counting arc + formula
+        isSolved: false,
+        timers: [],
+
+        // Spring physics for scale needle & weighing pan
+        needleAngle: 0,
+        needleVel: 0,
+        targetAngle: 0,
+        panOffset: 0,
+        panVel: 0,
+        targetPanOffset: 0
+      };
+
+      const els = {
+        stageViewport: document.getElementById('stageViewport'),
+        gameStage: document.getElementById('gameStage'),
+        sentCount: document.getElementById('sentCount'),
+        streakCount: document.getElementById('streakCount'),
+        stampCollection: document.getElementById('stampCollection'),
+        soundBtn: document.getElementById('soundBtn'),
+        fullscreenBtn: document.getElementById('fullscreenBtn'),
+        dismissRotateBtn: document.getElementById('dismissRotateBtn'),
+
+        customerLayer: document.getElementById('customerLayer'),
+        speechBubble: document.getElementById('speechBubble'),
+        speakerNameTag: document.getElementById('speakerNameTag'),
+        hintLevelBadge: document.getElementById('hintLevelBadge'),
+        speechText: document.getElementById('speechText'),
+        hintBtn: document.getElementById('hintBtn'),
+        zoomBtn: document.getElementById('zoomBtn'),
+
+        scaleSvg: document.getElementById('scaleSvg'),
+        dialClickArea: document.getElementById('dialClickArea'),
+        panGroup: document.getElementById('panGroup'),
+        scaleStem: document.getElementById('scaleStem'),
+        scaleDualRods: document.getElementById('scaleDualRods'),
+        panBowl: document.getElementById('panBowl'),
+        panTop: document.getElementById('panTop'),
+        scaleBodyPath: document.getElementById('scaleBodyPath'),
+        itemLayer: document.getElementById('itemLayer'),
+        dialTicksLayer: document.getElementById('dialTicksLayer'),
+        dialCapacityText: document.getElementById('dialCapacityText'),
+        hintOverlayLayer: document.getElementById('hintOverlayLayer'),
+        needleGroup: document.getElementById('needleGroup'),
+
+        mcArea: document.getElementById('mcArea'),
+        keypadArea: document.getElementById('keypadArea'),
+        keypadGRow: document.getElementById('keypadGRow'),
+        keypadKgRow: document.getElementById('keypadKgRow'),
+        keypadKgBox: document.getElementById('keypadKgBox'),
+        keypadKgGBox: document.getElementById('keypadKgGBox'),
+        keypadKgDisplay: document.getElementById('keypadKgDisplay'),
+        keypadKgGDisplay: document.getElementById('keypadKgGDisplay'),
+        keypadDisplay: document.getElementById('keypadDisplay'),
+        submitKeypadBtn: document.getElementById('submitKeypadBtn'),
+
+        packingOverlay: document.getElementById('packingOverlay'),
+        parcelBoxWrapper: document.getElementById('parcelBoxWrapper'),
+        packingStatusPill: document.getElementById('packingStatusPill'),
+        parcelFrontSvg: document.getElementById('parcelFrontSvg'),
+        parcelDroppingItem: document.getElementById('parcelDroppingItem'),
+        parcelWeightLabel: document.getElementById('parcelWeightLabel'),
+
+        magnifierModal: document.getElementById('magnifierModal'),
+        closeMagnifierBtn: document.getElementById('closeMagnifierBtn'),
+        modalScaleTitle: document.getElementById('modalScaleTitle'),
+        modalScaleSubtext: document.getElementById('modalScaleSubtext'),
+        modalDialTicksLayer: document.getElementById('modalDialTicksLayer'),
+        modalHintOverlayLayer: document.getElementById('modalHintOverlayLayer'),
+        modalDialCapacityText: document.getElementById('modalDialCapacityText'),
+        modalNeedleGroup: document.getElementById('modalNeedleGroup')
+      };
+
+      /* ===================================================================
+         6. RESPONSIVE 16:9 STAGE FITTER (Zero Scrollbars, Pixel-Perfect Layers)
+         =================================================================== */
+      function fitStageToViewport() {
+        const isShortLandscape = window.innerHeight <= 540;
+        const pad = isShortLandscape ? 6 : 16;
+        const availW = Math.max(280, els.stageViewport.clientWidth - pad);
+        const availH = Math.max(158, els.stageViewport.clientHeight - pad);
+        const ratio = 16 / 9;
+
+        let targetW = availW;
+        let targetH = targetW / ratio;
+
+        if (targetH > availH) {
+          targetH = availH;
+          targetW = targetH * ratio;
+        }
+
+        els.gameStage.style.width = `${Math.floor(targetW)}px`;
+        els.gameStage.style.height = `${Math.floor(targetH)}px`;
+      }
+
+      /* ===================================================================
+         7. EXACT SVG SCALE DIAL RENDERER (Main Scale + Magnifier Modal Sync)
+         =================================================================== */
+      const DIAL_CX = 190;
+      const DIAL_CY = 312;
+      const DIAL_R = 102;
+
+      function formatWeight(grams, unit = 'g') {
+        if (unit === 'kg') {
+          const kg = Math.floor(grams / 1000);
+          const rem = grams % 1000;
+          if (kg === 0) return `${rem} g`;
+          if (rem === 0) return `${kg} kg`;
+          return `${kg} kg ${rem} g`;
+        }
+        return `${grams} g`;
+      }
+
+      function renderScale(scale) {
+        els.scaleBodyPath.setAttribute('fill', scale.bodyGrad);
+        els.scaleStem.setAttribute('fill', scale.bodyGrad);
+        els.panBowl.setAttribute('fill', scale.panGrad);
+        els.panTop.setAttribute('fill', scale.panGrad);
+
+        const isKg = scale.unit === 'kg';
+        els.scaleStem.classList.toggle('hidden', isKg);
+        els.scaleDualRods.classList.toggle('hidden', !isKg);
+
+        const capacityLabel = isKg ? `${scale.max / 1000} kg` : `${scale.max} g`;
+        els.dialCapacityText.textContent = capacityLabel;
+        els.modalDialCapacityText.textContent = capacityLabel;
+        els.modalScaleTitle.textContent = `放大磅面：${scale.name}`;
+        els.modalScaleSubtext.textContent = `呢個磅最大量度 ${capacityLabel}，每 1 小格代表 ${scale.smallStep} g！`;
+
+        const totalDivs = scale.max / scale.smallStep;
+        let ticksSvg = '';
+
+        for (let i = 0; i < totalDivs; i++) {
+          const val = i * scale.smallStep;
+          const angleDeg = (val / scale.max) * 360;
+          const rad = ((angleDeg - 90) * Math.PI) / 180;
+
+          const isMajor = val % scale.majorStep === 0;
+          const isMedium = scale.mediumStep && !isMajor && (val % scale.mediumStep === 0);
+
+          const outerR = DIAL_R - 1.5;
+          let innerR = outerR - 9.5;
+          let strokeW = 1.7;
+
+          if (isMajor) {
+            innerR = outerR - 17;
+            strokeW = 3.2;
+          } else if (isMedium) {
+            innerR = outerR - (scale.id === 'kg2' ? 16 : 13.5);
+            strokeW = scale.id === 'kg2' ? 3 : 2.4;
+          }
+
+          const x1 = DIAL_CX + outerR * Math.cos(rad);
+          const y1 = DIAL_CY + outerR * Math.sin(rad);
+          const x2 = DIAL_CX + innerR * Math.cos(rad);
+          const y2 = DIAL_CY + innerR * Math.sin(rad);
+
+          ticksSvg += `<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" stroke="#0f172a" stroke-width="${strokeW}" stroke-linecap="round"/>`;
+
+          if (isMajor) {
+            const labelR = val === 0 ? 73 : (scale.id === 'blue' ? 68 : 66);
+            const lx = DIAL_CX + labelR * Math.cos(rad);
+            const ly = DIAL_CY + labelR * Math.sin(rad);
+            const fontSize = scale.id === 'blue' ? 17.5 : (isKg ? 22 : 21);
+            const displayVal = isKg ? (val / 1000) : val;
+            ticksSvg += `<text x="${lx.toFixed(2)}" y="${ly.toFixed(2)}" text-anchor="middle" dominant-baseline="central" font-size="${fontSize}" font-weight="800" fill="#0f172a">${displayVal}</text>`;
+          }
+        }
+
+        els.dialTicksLayer.innerHTML = ticksSvg;
+        els.modalDialTicksLayer.innerHTML = ticksSvg;
+        els.hintOverlayLayer.innerHTML = '';
+        els.modalHintOverlayLayer.innerHTML = '';
+      }
+
+      /* ===================================================================
+         8. GLOWING DIAL HINT OVERLAY (Level 1: Major Mark | Level 2: Arc + Dots)
+         =================================================================== */
+      function getHintAnchor(target, scale) {
+        const majorBase = Math.floor(target / scale.majorStep) * scale.majorStep;
+        // On 2kg scale (20 small ticks per kg), anchor at the 500g half-mark when past half-kg
+        if (scale.id === 'kg2' && (target - majorBase) >= 500) {
+          return {
+            baseWeight: majorBase + 500,
+            isHalfAnchor: true,
+            extraTicks: (target - (majorBase + 500)) / scale.smallStep
+          };
+        }
+        return {
+          baseWeight: majorBase,
+          isHalfAnchor: false,
+          extraTicks: (target - majorBase) / scale.smallStep
+        };
+      }
+
+      function renderDialHintOverlay(level) {
+        const scale = state.currentScale;
+        const target = state.targetWeight;
+        const { baseWeight, extraTicks } = getHintAnchor(target, scale);
+
+        const baseAngle = (baseWeight / scale.max) * 360;
+        const targetAngle = (target / scale.max) * 360;
+
+        let svg = '';
+        const baseRad = ((baseAngle - 90) * Math.PI) / 180;
+        const bx = DIAL_CX + (DIAL_R - 10) * Math.cos(baseRad);
+        const by = DIAL_CY + (DIAL_R - 10) * Math.sin(baseRad);
+
+        // Level 1+: Glowing green marker on the major/anchor tick just passed
+        svg += `
+          <circle cx="${bx.toFixed(1)}" cy="${by.toFixed(1)}" r="11" fill="#10b981" opacity="0.38" class="hint-pulse"/>
+          <circle cx="${bx.toFixed(1)}" cy="${by.toFixed(1)}" r="4.8" fill="#059669"/>
+        `;
+
+        // Level 2: Glowing golden arc + dots for each small tick counted
+        if (level >= 2 && extraTicks > 0) {
+          const arcR = DIAL_R - 10;
+          const startRad = ((baseAngle - 90) * Math.PI) / 180;
+          const endRad = ((targetAngle - 90) * Math.PI) / 180;
+          const sx = DIAL_CX + arcR * Math.cos(startRad);
+          const sy = DIAL_CY + arcR * Math.sin(startRad);
+          const ex = DIAL_CX + arcR * Math.cos(endRad);
+          const ey = DIAL_CY + arcR * Math.sin(endRad);
+          const largeArc = (targetAngle - baseAngle) > 180 ? 1 : 0;
+
+          svg += `
+            <path d="M ${sx.toFixed(2)},${sy.toFixed(2)} A ${arcR},${arcR} 0 ${largeArc},1 ${ex.toFixed(2)},${ey.toFixed(2)}"
+              fill="none" stroke="#f59e0b" stroke-width="11" stroke-linecap="round" opacity="0.5"/>
+          `;
+
+          for (let step = 1; step <= extraTicks; step++) {
+            const stepW = baseWeight + step * scale.smallStep;
+            const a = ((stepW / scale.max) * 360 - 90) * Math.PI / 180;
+            const px = DIAL_CX + (DIAL_R - 10) * Math.cos(a);
+            const py = DIAL_CY + (DIAL_R - 10) * Math.sin(a);
+            svg += `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="3.6" fill="#d97706" class="hint-pulse"/>`;
+          }
+        }
+
+        els.hintOverlayLayer.innerHTML = svg;
+        els.modalHintOverlayLayer.innerHTML = svg;
+      }
+
+      /* ===================================================================
+         9. CUSTOMER VISUALS & PROGRESSIVE HINT DIALOGUE
+         =================================================================== */
+      function setCustomerVisual(customer, mood, animateEnter = false) {
+        const cls = animateEnter
+          ? 'customer-enter'
+          : mood === 'happy'
+          ? 'customer-happy'
+          : 'customer-idle';
+        els.customerLayer.innerHTML = `<div class="w-full h-full ${cls}">${customer.renderSvg(mood)}</div>`;
+      }
+
+      function updateSpeech(html, isHint = false) {
+        els.speechText.innerHTML = html;
+        els.hintLevelBadge.classList.toggle('hidden', !isHint);
+
+        if (isHint) {
+          els.speechBubble.classList.remove('bg-white/95', 'border-slate-200/90');
+          els.speechBubble.classList.add('bg-amber-50/95', 'border-amber-300');
+        } else {
+          els.speechBubble.classList.remove('bg-amber-50/95', 'border-amber-300');
+          els.speechBubble.classList.add('bg-white/95', 'border-slate-200/90');
+        }
+
+        els.speechBubble.classList.remove('animate-bubble');
+        void els.speechBubble.offsetWidth;
+        els.speechBubble.classList.add('animate-bubble');
+      }
+
+      function triggerProgressiveHint() {
+        if (state.isSolved) return;
+        state.hintLevel = Math.min(2, state.hintLevel + 1);
+
+        const scale = state.currentScale;
+        const target = state.targetWeight;
+        const { baseWeight, extraTicks } = getHintAnchor(target, scale);
+        const baseLabel = baseWeight === 0 ? (scale.unit === 'kg' ? '0 kg' : '0 g') : formatWeight(baseWeight, scale.unit);
+
+        renderDialHintOverlay(state.hintLevel);
+        setCustomerVisual(state.currentCustomer, 'hint', false);
+
+        if (state.hintLevel === 1) {
+          els.hintLevelBadge.textContent = '💡 貼士 1/2';
+          if (extraTicks === 0) {
+            updateSpeech(
+              `唔好心急呀！呢個係 <b>${scale.name}</b>，每 1 小格係 <span class="text-sky-700 font-black">${scale.smallStep} g</span>。你睇真啲，紅色指針啱啱好指正綠色發光嘅刻度 <span class="text-emerald-700 font-black">${baseLabel}</span> 喎！`,
+              true
+            );
+          } else {
+            updateSpeech(
+              `唔好心急呀！呢個係 <b>${scale.name}</b>，每 1 小格係 <span class="text-sky-700 font-black">${scale.smallStep} g</span>。指針啱啱過咗 <span class="text-emerald-700 font-black">${baseLabel}</span> 喎，數下過咗幾多小格啦！`,
+              true
+            );
+          }
+        } else {
+          els.hintLevelBadge.textContent = '💡 貼士 2/2';
+          if (extraTicks === 0) {
+            updateSpeech(
+              `望下綠色發光位！指針指正刻度 <span class="text-emerald-700 font-black">${baseLabel}</span>，唔使加細格，所以答案係幾多呢？`,
+              true
+            );
+          } else {
+            const calcExpr = scale.unit === 'kg'
+              ? `${baseLabel} + ${extraTicks} × ${scale.smallStep} g = ？`
+              : `${baseWeight} + ${extraTicks} × ${scale.smallStep} = ？`;
+            updateSpeech(
+              `我哋一齊數啦！由 <span class="text-emerald-700 font-black">${baseLabel}</span> 順時針數多 <span class="text-amber-700 font-black">${extraTicks} 小格</span>，每格 ${scale.smallStep} g，即係 <b>${calcExpr}</b>`,
+              true
+            );
+          }
+        }
+      }
+
+      /* ===================================================================
+         10. PACKAGING & SHIPPING ANIMATION OVERLAY (On Correct Answer)
+         =================================================================== */
+      function clearAllTimers() {
+        state.timers.forEach(t => clearTimeout(t));
+        state.timers = [];
+      }
+
+      function resetPackingOverlay() {
+        clearAllTimers();
+        els.packingOverlay.classList.add('hidden');
+        els.parcelBoxWrapper.classList.remove('parcel-slide-out', 'box-enter');
+        els.parcelFrontSvg.classList.remove('flaps-closed', 'tape-sealed', 'sticker-on', 'stamp-slammed');
+        els.parcelDroppingItem.innerHTML = '';
+        els.parcelDroppingItem.classList.remove('item-dropping');
+      }
+
+      function playPackingAndShippingSequence() {
+        clearAllTimers();
+        els.magnifierModal.classList.add('hidden');
+
+        // 1. Lift item off scale & release needle back to 0
+        els.itemLayer.innerHTML = '';
+        state.targetPanOffset = 0;
+        state.targetAngle = 0;
+
+        // 2. Show enlarged cardboard box over the counter
+        const formattedLabel = formatWeight(state.targetWeight, state.currentScale.unit);
+        els.packingOverlay.classList.remove('hidden');
+        els.parcelBoxWrapper.classList.remove('parcel-slide-out');
+        els.parcelBoxWrapper.classList.add('box-enter');
+        els.parcelWeightLabel.textContent = formattedLabel;
+        els.parcelWeightLabel.setAttribute('font-size', formattedLabel.length > 7 ? '11.5' : '16');
+        els.packingStatusPill.textContent = '📦 正在將物件放入紙箱...';
+
+        // 3. Render item strictly centered directly above box opening, then drop vertically inside
+        els.parcelDroppingItem.innerHTML = `
+          <svg viewBox="115 5 150 140" class="w-full h-full overflow-visible">
+            ${state.currentItem.renderSvg()}
+          </svg>
+        `;
+        els.parcelDroppingItem.classList.remove('item-dropping');
+        void els.parcelDroppingItem.offsetWidth;
+        els.parcelDroppingItem.classList.add('item-dropping');
+
+        // 4. Soft drop sound & fold box flaps shut once item lands inside
+        state.timers.push(setTimeout(() => {
+          playSound('drop');
+          els.parcelFrontSvg.classList.add('flaps-closed');
+          els.packingStatusPill.textContent = '🩹 摺好箱蓋，貼上封箱膠紙...';
+        }, 680));
+
+        // 5. Zip packing tape across
+        state.timers.push(setTimeout(() => {
+          els.parcelFrontSvg.classList.add('tape-sealed');
+          playSound('tape');
+        }, 1020));
+
+        // 6. Stick weight label
+        state.timers.push(setTimeout(() => {
+          els.parcelFrontSvg.classList.add('sticker-on');
+          els.packingStatusPill.textContent = `🏷️ 貼上 ${formattedLabel} 重量標籤，蓋印寄出！`;
+        }, 1340));
+
+        // 7. Slam red "已寄出 POSTED" stamp with subtle stage shake
+        state.timers.push(setTimeout(() => {
+          els.parcelFrontSvg.classList.add('stamp-slammed');
+          els.gameStage.classList.remove('stage-thud');
+          void els.gameStage.offsetWidth;
+          els.gameStage.classList.add('stage-thud');
+          playSound('stamp');
+        }, 1680));
+
+        // 8. Slide parcel off to right mail chute & award stamp
+        state.timers.push(setTimeout(() => {
+          els.parcelBoxWrapper.classList.add('parcel-slide-out');
+          els.packingStatusPill.textContent = '✅ 包裹已順利寄出！';
+          playSound('whoosh');
+          addPostageStamp(state.currentItem);
+        }, 2320));
+
+        // 9. Automatically welcome next customer smoothly
+        state.timers.push(setTimeout(() => {
+          loadNextCustomer();
+        }, 3080));
+      }
+
+      function addPostageStamp(item) {
+        state.collectedStamps.push(item);
+        const recent = state.collectedStamps.slice(-8);
+        els.stampCollection.innerHTML = recent.map((st) => `
+          <span title="${st.name}" class="mini-stamp inline-flex items-center justify-center w-6 h-6 rounded-md text-xs text-white shrink-0" style="background-color: ${st.stampColor};">
+            ${st.stampIcon}
+          </span>
+        `).join('');
+      }
+
+      /* ===================================================================
+         11. QUESTION GENERATION, DISTRACTORS & ANSWER CHECKING
+         =================================================================== */
+      function generateOptions(target, scale) {
+        const candidates = new Set([target]);
+        const step = scale.smallStep;
+        const major = scale.majorStep;
+        const majorBase = Math.floor(target / major) * major;
+        const extraTicks = (target - majorBase) / step;
+
+        // Pedagogical distractors (common HK primary school mistakes)
+        const plausible = [
+          // Mistake 1: Confusing small tick value (10g vs 20g, or 100g vs 200g / 50g)
+          scale.id === 'orange' ? majorBase + extraTicks * 10
+            : scale.id === 'kg5a' ? majorBase + extraTicks * 100
+            : scale.id === 'kg2' ? majorBase + extraTicks * 100
+            : scale.unit === 'kg' ? majorBase + extraTicks * 200
+            : majorBase + extraTicks * 20,
+          // Mistake 2: Off by 1 or 2 small ticks
+          target + step,
+          target - step,
+          target + step * 2,
+          target - step * 2,
+          // Mistake 3: Off by half a major division or 1 major division
+          target + (scale.mediumStep || major),
+          target - (scale.mediumStep || major),
+          // Mistake 4: Counting backwards from the next major mark
+          majorBase + major - extraTicks * step
+        ];
+
+        for (const val of plausible) {
+          if (candidates.size >= 4) break;
+          if (val > 0 && val < scale.max && val !== target && val % 5 === 0) {
+            candidates.add(val);
+          }
+        }
+
+        // Fallback if still fewer than 4 options
+        let guard = 0;
+        while (candidates.size < 4 && guard < 40) {
+          guard++;
+          const offset = (Math.floor(Math.random() * 9) - 4) * step;
+          const v = target + offset;
+          if (v > 0 && v < scale.max) candidates.add(v);
+        }
+
+        return Array.from(candidates).sort(() => Math.random() - 0.5);
+      }
+
+      function renderMcOptions(options) {
+        els.mcArea.innerHTML = '';
+        const isKg = state.currentScale.unit === 'kg';
+        options.forEach((opt, idx) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          const sizeClass = isKg ? 'stage-mc-btn-kg' : 'stage-mc-btn';
+          btn.className = `mc-opt btn-game mc-glass-opt mc-color-${idx % 4} ${sizeClass} font-black flex items-baseline justify-center gap-1 whitespace-nowrap`;
+
+          if (isKg) {
+            const kg = Math.floor(opt / 1000);
+            const rem = opt % 1000;
+            if (kg === 0) {
+              btn.innerHTML = `<span>${rem}</span><span class="stage-badge-text !p-0 font-bold text-white/85">g</span>`;
+            } else if (rem === 0) {
+              btn.innerHTML = `<span>${kg}</span><span class="stage-badge-text !p-0 font-bold text-white/85">kg</span>`;
+            } else {
+              btn.innerHTML = `<span>${kg}</span><span class="stage-badge-text !p-0 font-bold text-white/85">kg</span><span class="ml-0.5">${rem}</span><span class="stage-badge-text !p-0 font-bold text-white/85">g</span>`;
+            }
+          } else {
+            btn.innerHTML = `<span>${opt}</span><span class="stage-badge-text !p-0 font-bold text-white/85">g</span>`;
+          }
+
+          btn.addEventListener('click', () => checkAnswer(opt, btn));
+          els.mcArea.appendChild(btn);
+        });
+      }
+
+      function updateKeypadDisplay() {
+        const isKg = state.currentScale.unit === 'kg';
+        els.keypadGRow.classList.toggle('hidden', isKg);
+        els.keypadKgRow.classList.toggle('hidden', !isKg);
+
+        if (isKg) {
+          if (!state.keypadKgValue) {
+            els.keypadKgDisplay.textContent = '_';
+            els.keypadKgDisplay.classList.remove('text-slate-900');
+            els.keypadKgDisplay.classList.add('text-slate-500/50');
+          } else {
+            els.keypadKgDisplay.textContent = state.keypadKgValue;
+            els.keypadKgDisplay.classList.remove('text-slate-500/50');
+            els.keypadKgDisplay.classList.add('text-slate-900');
+          }
+
+          if (!state.keypadValue) {
+            els.keypadKgGDisplay.textContent = '___';
+            els.keypadKgGDisplay.classList.remove('text-slate-900');
+            els.keypadKgGDisplay.classList.add('text-slate-500/50');
+          } else {
+            els.keypadKgGDisplay.textContent = state.keypadValue;
+            els.keypadKgGDisplay.classList.remove('text-slate-500/50');
+            els.keypadKgGDisplay.classList.add('text-slate-900');
+          }
+
+          const kgActive = state.keypadActiveField === 'kg';
+          els.keypadKgBox.classList.toggle('ring-2', kgActive);
+          els.keypadKgBox.classList.toggle('ring-[#1b7a4c]', kgActive);
+          els.keypadKgGBox.classList.toggle('ring-2', !kgActive);
+          els.keypadKgGBox.classList.toggle('ring-[#1b7a4c]', !kgActive);
+        } else {
+          if (!state.keypadValue) {
+            els.keypadDisplay.textContent = '___';
+            els.keypadDisplay.classList.remove('text-slate-900');
+            els.keypadDisplay.classList.add('text-slate-500/50');
+          } else {
+            els.keypadDisplay.textContent = state.keypadValue;
+            els.keypadDisplay.classList.remove('text-slate-500/50');
+            els.keypadDisplay.classList.add('text-slate-900');
+          }
+        }
+      }
+
+      function checkAnswer(val, clickedBtn = null) {
+        if (state.isSolved) return;
+
+        if (val === state.targetWeight) {
+          state.isSolved = true;
+          state.sentCount += 1;
+          state.streak += 1;
+          els.sentCount.textContent = state.sentCount;
+          els.streakCount.textContent = state.streak;
+
+          els.hintBtn.disabled = true;
+          els.submitKeypadBtn.disabled = true;
+          document.querySelectorAll('.mc-opt').forEach((b) => { b.disabled = true; });
+
+          if (clickedBtn) {
+            clickedBtn.classList.remove('mc-color-0', 'mc-color-1', 'mc-color-2', 'mc-color-3');
+            clickedBtn.classList.add('bg-emerald-500', 'text-white', 'ring-4', 'ring-emerald-200/80', 'scale-[1.03]');
+          }
+
+          playSound('correct');
+          setCustomerVisual(state.currentCustomer, 'happy', false);
+          updateSpeech(state.currentCustomer.thanks(formatWeight(state.targetWeight, state.currentScale.unit)), false);
+          playPackingAndShippingSequence();
+        } else {
+          state.streak = 0;
+          els.streakCount.textContent = state.streak;
+          playSound('wrong');
+
+          if (clickedBtn) {
+            clickedBtn.disabled = true;
+            clickedBtn.classList.add('opacity-40', 'grayscale', 'animate-shake');
+          } else {
+            const shakeTarget = state.currentScale.unit === 'kg' ? els.keypadKgRow : els.keypadGRow;
+            shakeTarget.classList.remove('animate-shake');
+            void shakeTarget.offsetWidth;
+            shakeTarget.classList.add('animate-shake');
+            state.keypadValue = '';
+            state.keypadKgValue = '';
+            state.keypadActiveField = 'kg';
+            updateKeypadDisplay();
+          }
+
+          triggerProgressiveHint();
+        }
+      }
+
+      function loadNextCustomer() {
+        resetPackingOverlay();
+        state.isSolved = false;
+        state.hintLevel = 0;
+        state.keypadValue = '';
+        state.keypadKgValue = '';
+        state.keypadActiveField = 'kg';
+
+        els.hintBtn.disabled = false;
+        els.submitKeypadBtn.disabled = false;
+
+        // Pick a customer different from the previous one
+        const pool = CUSTOMERS.filter((c) => c.id !== state.lastCustomerId);
+        const customer = pool[Math.floor(Math.random() * pool.length)];
+        state.currentCustomer = customer;
+        state.lastCustomerId = customer.id;
+
+        // Pick scale according to filter
+        const gScaleKeys = ['green', 'blue', 'orange'];
+        const kgScaleKeys = ['kg2', 'kg3', 'kg5a', 'kg5b'];
+        const allScaleKeys = [...gScaleKeys, ...kgScaleKeys];
+        let chosenScaleKey = state.scaleFilter;
+        if (state.scaleFilter === 'mixed') {
+          chosenScaleKey = allScaleKeys[Math.floor(Math.random() * allScaleKeys.length)];
+        } else if (state.scaleFilter === 'mixed_g') {
+          chosenScaleKey = gScaleKeys[Math.floor(Math.random() * gScaleKeys.length)];
+        } else if (state.scaleFilter === 'mixed_kg') {
+          chosenScaleKey = kgScaleKeys[Math.floor(Math.random() * kgScaleKeys.length)];
+        }
+        const scale = SCALES[chosenScaleKey];
+        state.currentScale = scale;
+        updateKeypadDisplay();
+
+        // Pick a matching item for the chosen scale
+        const validItems = ITEMS.filter((it) => it.scales.includes(scale.id));
+        const item = validItems[Math.floor(Math.random() * validItems.length)];
+        state.currentItem = item;
+
+        // Pick a valid weight aligned to smallStep
+        let weight;
+        if (item.classicWeight && item.classicWeight[scale.id] && Math.random() < 0.35) {
+          weight = item.classicWeight[scale.id];
+        } else {
+          const minAllowed = Math.max(scale.smallStep * 2, item.minW);
+          const maxAllowed = Math.min(scale.max - scale.smallStep, item.maxW);
+          const minTicks = Math.ceil(minAllowed / scale.smallStep);
+          const maxTicks = Math.floor(maxAllowed / scale.smallStep);
+          const chosenTicks = minTicks + Math.floor(Math.random() * Math.max(1, maxTicks - minTicks + 1));
+          weight = chosenTicks * scale.smallStep;
+        }
+        state.targetWeight = weight;
+
+        // Update Scale UI & Spring Physics targets
+        renderScale(scale);
+        els.itemLayer.innerHTML = item.renderSvg();
+        state.targetAngle = (weight / scale.max) * 360;
+        state.targetPanOffset = 10;
+        state.panVel = 2.6;
+
+        // Update Customer & Speech Bubble
+        els.speakerNameTag.textContent = customer.name;
+        els.speakerNameTag.className = `stage-badge-text inline-flex items-center font-black rounded-full ${customer.tagBg}`;
+        setCustomerVisual(customer, 'normal', true);
+        updateSpeech(customer.greeting(item), false);
+
+        // Generate Multiple Choice options
+        renderMcOptions(generateOptions(weight, scale));
+
+        playSound('bell');
+      }
+
+      /* ===================================================================
+         12. MODE & FILTER CONTROLS + SPRING PHYSICS LOOP
+         =================================================================== */
+      function setInputMode(mode) {
+        state.inputMode = mode;
+        const isMc = mode === 'mc';
+        els.mcArea.classList.toggle('hidden', !isMc);
+        els.keypadArea.classList.toggle('hidden', isMc);
+
+        document.querySelectorAll('.mode-btn').forEach((btn) => {
+          const active = btn.dataset.mode === mode;
+          btn.classList.toggle('bg-[#1b7a4c]', active);
+          btn.classList.toggle('text-white', active);
+          btn.classList.toggle('shadow-sm', active);
+          btn.classList.toggle('text-slate-600', !active);
+        });
+      }
+
+      function setScaleFilter(filter, reload = true) {
+        state.scaleFilter = filter;
+        document.querySelectorAll('.scale-pill').forEach((btn) => {
+          const active = btn.dataset.scale === filter;
+          btn.className = 'scale-pill btn-game px-2.5 py-0.5 rounded-full text-sm font-black shrink-0 ' + (
+            active
+              ? 'bg-[#1b7a4c] text-white shadow-sm'
+              : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+          );
+        });
+        if (reload) loadNextCustomer();
+      }
+
+      function animatePhysics() {
+        // Spring damper for needle rotation
+        const angleForce = (state.targetAngle - state.needleAngle) * 0.14;
+        state.needleVel = (state.needleVel + angleForce) * 0.76;
+        state.needleAngle += state.needleVel;
+
+        // Spring damper for pan bounce
+        const panForce = (state.targetPanOffset - state.panOffset) * 0.18;
+        state.panVel = (state.panVel + panForce) * 0.72;
+        state.panOffset += state.panVel;
+
+        const rot = `rotate(${state.needleAngle.toFixed(2)}, ${DIAL_CX}, ${DIAL_CY})`;
+        els.needleGroup.setAttribute('transform', rot);
+        els.modalNeedleGroup.setAttribute('transform', rot);
+        els.panGroup.setAttribute('transform', `translate(0, ${state.panOffset.toFixed(2)})`);
+
+        requestAnimationFrame(animatePhysics);
+      }
+
+      /* ===================================================================
+         13. EVENT LISTENERS & INITIALIZATION
+         =================================================================== */
+      document.querySelectorAll('.mode-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          playSound('click');
+          setInputMode(btn.dataset.mode);
+        });
+      });
+
+      document.querySelectorAll('.scale-pill').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          playSound('click');
+          setScaleFilter(btn.dataset.scale, true);
+        });
+      });
+
+      els.soundBtn.addEventListener('click', () => {
+        isMuted = !isMuted;
+        els.soundBtn.textContent = isMuted ? '🔇' : '🔊';
+        if (!isMuted) playSound('click');
+      });
+
+      els.hintBtn.addEventListener('click', () => {
+        playSound('click');
+        triggerProgressiveHint();
+      });
+
+      function openMagnifier() {
+        playSound('click');
+        els.magnifierModal.classList.remove('hidden');
+      }
+
+      function closeMagnifier() {
+        playSound('click');
+        els.magnifierModal.classList.add('hidden');
+      }
+
+      els.zoomBtn.addEventListener('click', openMagnifier);
+      els.dialClickArea.addEventListener('click', openMagnifier);
+      els.closeMagnifierBtn.addEventListener('click', closeMagnifier);
+      els.magnifierModal.addEventListener('click', (e) => {
+        if (e.target === els.magnifierModal) closeMagnifier();
+      });
+
+      if (els.dismissRotateBtn) {
+        els.dismissRotateBtn.addEventListener('click', () => {
+          document.body.classList.add('allow-portrait');
+          setTimeout(fitStageToViewport, 60);
+        });
+      }
+
+      if (document.documentElement.requestFullscreen && els.fullscreenBtn) {
+        els.fullscreenBtn.classList.remove('hidden');
+        els.fullscreenBtn.classList.add('flex');
+        els.fullscreenBtn.addEventListener('click', () => {
+          if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(() => {});
+          } else {
+            document.exitFullscreen().catch(() => {});
+          }
+        });
+      }
+
+      // Touch Keypad Buttons & Field Selection
+      els.keypadKgBox.addEventListener('click', () => {
+        playSound('click');
+        state.keypadActiveField = 'kg';
+        updateKeypadDisplay();
+      });
+
+      els.keypadKgGBox.addEventListener('click', () => {
+        playSound('click');
+        state.keypadActiveField = 'g';
+        updateKeypadDisplay();
+      });
+
+      function handleKeypadInput(key) {
+        if (state.isSolved) return;
+        playSound('click');
+        const isKg = state.currentScale.unit === 'kg';
+
+        if (key === 'clear') {
+          state.keypadValue = '';
+          state.keypadKgValue = '';
+          state.keypadActiveField = 'kg';
+        } else if (key === 'back') {
+          if (isKg) {
+            if (state.keypadActiveField === 'g') {
+              if (state.keypadValue.length > 0) {
+                state.keypadValue = state.keypadValue.slice(0, -1);
+              } else {
+                state.keypadActiveField = 'kg';
+                state.keypadKgValue = state.keypadKgValue.slice(0, -1);
+              }
+            } else {
+              state.keypadKgValue = state.keypadKgValue.slice(0, -1);
+            }
+          } else {
+            state.keypadValue = state.keypadValue.slice(0, -1);
+          }
+        } else {
+          if (isKg) {
+            if (state.keypadActiveField === 'kg') {
+              state.keypadKgValue = key;
+              state.keypadActiveField = 'g';
+            } else if (state.keypadValue.length < 3) {
+              state.keypadValue += key;
+            }
+          } else if (state.keypadValue.length < 4) {
+            state.keypadValue += key;
+          }
+        }
+        updateKeypadDisplay();
+      }
+
+      document.querySelectorAll('.kp-btn').forEach((btn) => {
+        btn.addEventListener('click', () => handleKeypadInput(btn.dataset.key));
+      });
+
+      function submitKeypadAnswer() {
+        if (state.isSolved) return;
+        if (state.currentScale.unit === 'kg') {
+          if (!state.keypadKgValue && !state.keypadValue) return;
+          const kgPart = parseInt(state.keypadKgValue || '0', 10);
+          const gPart = parseInt(state.keypadValue || '0', 10);
+          if (!Number.isNaN(kgPart) && !Number.isNaN(gPart)) {
+            checkAnswer(kgPart * 1000 + gPart, null);
+          }
+        } else {
+          if (!state.keypadValue) return;
+          const parsed = parseInt(state.keypadValue, 10);
+          if (!Number.isNaN(parsed)) {
+            checkAnswer(parsed, null);
+          }
+        }
+      }
+
+      els.submitKeypadBtn.addEventListener('click', submitKeypadAnswer);
+
+      // Physical Keyboard Support
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !els.magnifierModal.classList.contains('hidden')) {
+          closeMagnifier();
+          return;
+        }
+        if (state.inputMode !== 'keypad' || state.isSolved) return;
+        if (/^[0-9]$/.test(e.key)) {
+          handleKeypadInput(e.key);
+        } else if (e.key === 'Backspace') {
+          handleKeypadInput('back');
+        } else if (e.key === 'Enter') {
+          submitKeypadAnswer();
+        }
+      });
+
+      window.addEventListener('resize', fitStageToViewport);
+      window.addEventListener('orientationchange', () => {
+        setTimeout(fitStageToViewport, 120);
+        setTimeout(fitStageToViewport, 350);
+      });
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', fitStageToViewport);
+      }
+
+      window.addEventListener('load', () => {
+        fitStageToViewport();
+        setInputMode('mc');
+        setScaleFilter('mixed', false);
+        loadNextCustomer();
+        animatePhysics();
+      });
+    })();
+  </script>
+</body>
+</html>
