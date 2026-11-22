@@ -322,7 +322,7 @@
       display: none;
     }
     @media (max-width: 767px) and (orientation: portrait) {
-      body:not(.allow-portrait) #rotateOverlay {
+      body:not(.allow-portrait):not(.in-student-kahoot) #rotateOverlay {
         display: flex;
       }
     }
@@ -337,6 +337,14 @@
     /* Hide scrollbars cleanly on horizontal pill strip */
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* Kahoot Teaching Review: Scale-Only Centered Large View */
+    .scale-teaching-focus {
+      left: 50% !important;
+      bottom: 3% !important;
+      width: 44% !important;
+      transform: translateX(-50%);
+    }
 
     /* =====================================================================
        iOS Liquid Glass Panel & 4-Color Glass Option Buttons
@@ -416,6 +424,46 @@
     .mc-color-3:hover:not(:disabled) {
       background: linear-gradient(135deg, rgba(251, 113, 133, 0.94) 0%, rgba(244, 63, 94, 0.96) 100%);
     }
+
+    /* =====================================================================
+       Kahoot Competitive Mode: Bar Chart, Correct Glow & Animated Leaderboard
+       ===================================================================== */
+    @keyframes correctBarPulse {
+      0%, 100% {
+        box-shadow: 0 0 0 3px #fde047, 0 0 22px rgba(250, 204, 21, 0.9), 0 8px 20px rgba(16, 185, 129, 0.45);
+        transform: scale(1.03);
+      }
+      50% {
+        box-shadow: 0 0 0 5px #fef08a, 0 0 34px rgba(250, 204, 21, 1), 0 10px 26px rgba(16, 185, 129, 0.65);
+        transform: scale(1.06);
+      }
+    }
+    .bar-correct-lit {
+      animation: correctBarPulse 1.1s ease-in-out infinite;
+      border: 2.5px solid #fef08a !important;
+      z-index: 5;
+    }
+    .bar-dimmed {
+      opacity: 0.42;
+      filter: saturate(0.55);
+      transition: opacity 0.4s ease, filter 0.4s ease;
+    }
+    .kahoot-bar-fill {
+      transition: height 0.65s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease;
+    }
+    .lb-row-animated {
+      position: absolute;
+      left: 0;
+      right: 0;
+      transition: transform 0.85s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.4s ease;
+    }
+    @keyframes urgentTick {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.12); }
+    }
+    .timer-urgent {
+      animation: urgentTick 0.6s ease-in-out infinite;
+    }
   </style>
 </head>
 <body class="h-[100dvh] flex flex-col overflow-hidden bg-slate-100 select-none text-slate-800">
@@ -494,6 +542,13 @@
             輸入數字
           </button>
         </div>
+
+        <!-- Kahoot Competitive Mode Entry Button -->
+        <button id="openKahootBtn" type="button"
+          class="compact-stat-pill btn-game flex items-center gap-1 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-black px-2.5 sm:px-3 py-1 rounded-full text-sm shadow-sm border border-violet-400">
+          <span>🏆</span>
+          <span>競技模式</span>
+        </button>
 
         <!-- Sound Toggle -->
         <button id="soundBtn" type="button" aria-label="開關音效"
@@ -592,6 +647,15 @@
            ================================================================= -->
       <div class="absolute inset-0 z-40 pointer-events-none">
 
+        <!-- KAHOOT TEACHING REVIEW BACKDROP (Covers Post Office & Customer so only Scale is shown) -->
+        <div id="teachingReviewBackdrop" class="hidden absolute inset-0 bg-gradient-to-b from-slate-50 via-white to-sky-50 pointer-events-none"></div>
+
+        <!-- Compact Hint Banner for Teaching Review (Only visible when teacher clicks 睇貼士) -->
+        <div id="teachingHintBanner" class="hidden stage-speech-box pointer-events-auto absolute top-[3%] left-[2.5%] max-w-[34%] bg-amber-50/95 border-2 border-amber-300 shadow-md">
+          <div class="stage-badge-text inline-flex items-center font-black rounded-full bg-amber-200 text-amber-900 mb-1">💡 睇磅貼士</div>
+          <p id="teachingHintText" class="stage-speech-text font-bold text-slate-700"></p>
+        </div>
+
         <!-- TOP-LEFT: Customer Speech Bubble -->
         <div id="speechBubble"
           class="stage-speech-box pointer-events-auto absolute top-[2.5%] left-[2.5%] w-[60%] max-w-[590px] bg-white/95 backdrop-blur-sm shadow-lg border-2 border-slate-200/90">
@@ -620,8 +684,8 @@
           </button>
         </div>
 
-        <!-- LEFT COUNTER: Interactive Kitchen Scale SVG -->
-        <div class="pointer-events-auto absolute left-[3.5%] bottom-[5%] w-[33%] max-w-[330px]">
+        <!-- LEFT COUNTER: Interactive Kitchen Scale SVG (Scales proportionally with 16:9 stage) -->
+        <div id="scaleContainer" class="pointer-events-auto absolute left-[2.5%] bottom-[2%] w-[38%] transition-all duration-300">
           <svg id="scaleSvg" viewBox="20 0 340 445" class="w-full h-auto overflow-visible drop-shadow-xl">
             <defs>
               <!-- Green Scale Gradients -->
@@ -732,7 +796,7 @@
         </div>
 
         <!-- BOTTOM-RIGHT: Answer Panel (iOS Liquid Glass: 4-Color MC / Touch Keypad) -->
-        <div class="stage-answer-panel pointer-events-auto absolute right-[2.2%] bottom-[2.8%] w-[50%] max-w-[490px] liquid-glass-panel">
+        <div id="answerPanelContainer" class="stage-answer-panel pointer-events-auto absolute right-[2.2%] bottom-[2.8%] w-[50%] max-w-[490px] liquid-glass-panel">
 
           <!-- Mode 1: Multiple Choice Grid (4 Colors Only) -->
           <div id="mcArea" class="stage-mc-grid grid grid-cols-2">
@@ -778,6 +842,45 @@
               <button type="button" data-key="clear" class="kp-btn stage-kp-key btn-game bg-amber-400/35 hover:bg-amber-400/50 text-amber-950 border border-white/60 font-black shadow-sm">清除</button>
             </div>
           </div>
+        </div>
+
+        <!-- BOTTOM-RIGHT (KAHOOT TEACHER LIVE HUD): Replaces Answer Panel during live competition -->
+        <div id="teacherLiveHud" class="hidden stage-answer-panel pointer-events-auto absolute right-[2.2%] bottom-[2.8%] w-[46%] max-w-[430px] liquid-glass-panel">
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <div class="flex items-center gap-2">
+              <span id="hudQBadge" class="stage-badge-text bg-violet-600 text-white font-black rounded-full shadow-sm">第 1 / 10 題</span>
+              <span id="hudRoomBadge" class="stage-badge-text bg-white/80 text-slate-700 font-black rounded-full border border-slate-200">房號 ----</span>
+            </div>
+            <div id="hudTimerBox" class="flex items-center justify-center min-w-[54px] px-2.5 py-0.5 rounded-full bg-slate-900 text-white font-black stage-action-btn shadow">
+              ⏱ <span id="hudTimerText">40</span>s
+            </div>
+          </div>
+          <div class="flex items-center justify-between gap-2 bg-white/75 rounded-xl px-3 py-2 mb-2 border border-white/80">
+            <span class="stage-badge-text !p-0 font-black text-slate-600">👥 學生作答進度</span>
+            <span id="hudAnsweredText" class="stage-action-btn !p-0 font-black text-indigo-700">0 / 0 人</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="hudSettleNowBtn" type="button"
+              class="flex-1 stage-action-btn btn-game bg-amber-500 hover:bg-amber-600 text-white font-black rounded-xl shadow">
+              ⏭️ 立即結算
+            </button>
+            <button id="hudAbortBtn" type="button"
+              class="stage-action-btn btn-game bg-rose-500/90 hover:bg-rose-600 text-white font-black rounded-xl shadow">
+              ⏹ 中止
+            </button>
+          </div>
+        </div>
+
+        <!-- BOTTOM-RIGHT (KAHOOT TEACHER TEACHING REVIEW BAR): Shown when viewing scale during explanation -->
+        <div id="teacherReviewBar" class="hidden stage-answer-panel pointer-events-auto absolute right-[2.2%] bottom-[2.8%] liquid-glass-panel flex items-center gap-2">
+          <button id="reviewBackResultBtn" type="button"
+            class="stage-action-btn btn-game bg-sky-600 hover:bg-sky-700 text-white font-black rounded-xl shadow">
+            📊 返回結算
+          </button>
+          <button id="reviewToLbBtn" type="button"
+            class="stage-action-btn btn-game bg-violet-600 hover:bg-violet-700 text-white font-black rounded-xl shadow">
+            🏆 進入龍虎榜
+          </button>
         </div>
 
       </div>
@@ -891,14 +994,404 @@
         </div>
       </div>
 
+      <!-- =================================================================
+           LAYER 5C (z-50): KAHOOT TEACHER OVERLAY (Lobby / Result Chart / Leaderboard / Podium)
+           ================================================================= -->
+      <div id="kahootTeacherOverlay" class="hidden absolute inset-0 z-50 bg-slate-900/75 backdrop-blur-md flex flex-col p-3 sm:p-5 text-white overflow-hidden">
+
+        <!-- VIEW 1: TEACHER LOBBY -->
+        <div id="teacherLobbyView" class="hidden flex-1 flex flex-col justify-between min-h-0">
+          <div class="flex items-center justify-between gap-2 flex-wrap">
+            <div class="flex items-center gap-2.5">
+              <span class="bg-violet-500/30 border border-violet-300/50 text-violet-100 font-black px-3 py-1 rounded-full text-sm sm:text-base">
+                🏆 競技模式大廳
+              </span>
+              <span id="lobbyConfigBadge" class="bg-white/15 border border-white/25 text-white font-bold px-3 py-1 rounded-full text-sm">
+                混合磅款 • 選擇題 • 10 題
+              </span>
+            </div>
+            <button id="lobbyCloseBtn" type="button"
+              class="btn-game bg-rose-500/80 hover:bg-rose-600 text-white font-black px-3.5 py-1.5 rounded-full text-sm shadow">
+              ✖ 關閉房間
+            </button>
+          </div>
+
+          <div class="flex-1 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 my-2 min-h-0">
+            <!-- Room Code Card -->
+            <div class="bg-white text-slate-900 rounded-3xl px-6 py-4 sm:py-6 shadow-2xl text-center shrink-0 border-4 border-violet-300">
+              <div class="text-sm font-black text-slate-500 mb-1">請學生輸入房間編號加入</div>
+              <div id="lobbyRoomCode" class="text-5xl sm:text-6xl font-black tracking-[0.18em] text-violet-700 font-mono pl-2">----</div>
+              <div class="mt-2 text-sm font-bold text-emerald-700 bg-emerald-50 rounded-full px-3 py-0.5 inline-block">
+                👥 已加入：<span id="lobbyPlayerCount">0</span> 位學生
+              </div>
+            </div>
+
+            <!-- Joined Players List -->
+            <div class="flex-1 w-full h-full max-h-[260px] bg-white/10 border border-white/20 rounded-2xl p-3 overflow-y-auto">
+              <div id="lobbyPlayersGrid" class="flex flex-wrap gap-2 content-start">
+                <div class="w-full text-center text-slate-300 font-bold py-6 text-base">
+                  等待學生加入房間中...
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-center gap-3">
+            <button id="lobbyStartGameBtn" type="button"
+              class="btn-game bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-black text-lg sm:text-xl px-8 py-2.5 rounded-full shadow-xl border-2 border-emerald-200">
+              🚀 開始比賽（第 1 題）
+            </button>
+          </div>
+        </div>
+
+        <!-- VIEW 2: QUESTION RESULT (BAR CHART + CORRECT ANSWER LIT UP) -->
+        <div id="teacherResultView" class="hidden flex-1 flex flex-col justify-between min-h-0">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span id="resultQTitle" class="bg-amber-400 text-slate-950 font-black px-3.5 py-1 rounded-full text-sm sm:text-base shadow">
+                📊 第 1 / 10 題結算
+              </span>
+              <span id="resultCorrectBanner" class="bg-emerald-500/90 border border-emerald-200 text-white font-black px-3.5 py-1 rounded-full text-sm sm:text-base shadow">
+                ✅ 正確答案：---
+              </span>
+            </div>
+            <button id="resultAbortBtn" type="button"
+              class="btn-game bg-rose-500/80 hover:bg-rose-600 text-white font-black px-3 py-1 rounded-full text-sm">
+              ⏹ 中止遊戲
+            </button>
+          </div>
+
+          <!-- Bar Chart Area -->
+          <div id="resultChartContainer" class="flex-1 flex items-end justify-center gap-3 sm:gap-6 px-2 sm:px-8 pt-6 pb-2 min-h-0">
+            <!-- Dynamically populated bar chart -->
+          </div>
+
+          <!-- Keypad Extra Summary (shown only in keypad mode) -->
+          <div id="resultKeypadChips" class="hidden flex flex-wrap items-center justify-center gap-2 mb-2"></div>
+
+          <!-- Teacher Action Bar -->
+          <div class="flex items-center justify-center gap-3 flex-wrap pt-1">
+            <button id="resultShowScaleBtn" type="button"
+              class="btn-game bg-sky-500 hover:bg-sky-400 text-white font-black text-base sm:text-lg px-5 py-2 rounded-full shadow-lg border-2 border-sky-200">
+              🔍 顯示題目（睇磅講解）
+            </button>
+            <button id="resultNextLbBtn" type="button"
+              class="btn-game bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-400 hover:to-fuchsia-400 text-white font-black text-base sm:text-lg px-6 py-2 rounded-full shadow-lg border-2 border-violet-200">
+              🏆 下一步（龍虎榜）
+            </button>
+          </div>
+        </div>
+
+        <!-- VIEW 3: ANIMATED LIVE LEADERBOARD -->
+        <div id="teacherLeaderboardView" class="hidden flex-1 flex flex-col justify-between min-h-0">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="bg-amber-400 text-slate-950 font-black px-4 py-1 rounded-full text-base sm:text-lg shadow">
+                🏆 即時龍虎榜
+              </span>
+              <span id="lbProgressText" class="text-sm sm:text-base font-bold text-slate-200">
+                完成第 1 / 10 題
+              </span>
+            </div>
+            <button id="lbAbortBtn" type="button"
+              class="btn-game bg-rose-500/80 hover:bg-rose-600 text-white font-black px-3 py-1 rounded-full text-sm">
+              ⏹ 中止遊戲
+            </button>
+          </div>
+
+          <!-- Animated Rank List Container -->
+          <div class="flex-1 my-2.5 overflow-y-auto px-1 sm:px-6 min-h-0">
+            <div id="lbAnimatedList" class="relative w-full max-w-2xl mx-auto">
+              <!-- Rows injected & smoothly translated via transform -->
+            </div>
+          </div>
+
+          <div class="flex items-center justify-center gap-3">
+            <button id="lbNextQuestionBtn" type="button"
+              class="btn-game bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-black text-base sm:text-xl px-7 py-2 rounded-full shadow-xl border-2 border-emerald-200">
+              ➡️ 進入下一題
+            </button>
+          </div>
+        </div>
+
+        <!-- VIEW 4: FINAL PODIUM -->
+        <div id="teacherFinishedView" class="hidden flex-1 flex flex-col justify-between min-h-0">
+          <div class="text-center">
+            <h2 id="podiumHeading" class="text-2xl sm:text-3xl font-black text-amber-300 drop-shadow">
+              🎉 競技大賽圓滿結束！頒獎台 🏆
+            </h2>
+          </div>
+
+          <div id="podiumStage" class="flex-1 flex items-end justify-center gap-3 sm:gap-6 my-2 min-h-0">
+            <!-- Top 3 podium cards -->
+          </div>
+
+          <div class="flex items-center justify-center gap-3 flex-wrap">
+            <button id="podiumNewGameBtn" type="button"
+              class="btn-game bg-violet-600 hover:bg-violet-500 text-white font-black text-base px-6 py-2 rounded-full shadow-lg border-2 border-violet-300">
+              🔄 再開一局
+            </button>
+            <button id="podiumExitBtn" type="button"
+              class="btn-game bg-white/20 hover:bg-white/30 text-white font-black text-base px-6 py-2 rounded-full border border-white/40">
+              🏠 返回個人練習
+            </button>
+          </div>
+        </div>
+
+      </div>
+
     </div>
   </main>
 
   <!-- =====================================================================
-       GAME JAVASCRIPT ENGINE
+       KAHOOT ROLE SELECTION MODAL (Teacher vs Student)
+       ===================================================================== -->
+  <div id="kahootRoleModal" class="hidden fixed inset-0 z-[70] bg-slate-900/65 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl border-4 border-violet-200 max-w-lg w-full p-5 sm:p-6 animate-bubble text-slate-800">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl sm:text-2xl font-black text-violet-800 flex items-center gap-2">
+          <span>🏆</span> 郵局競技模式 (Kahoot)
+        </h2>
+        <button id="closeRoleModalBtn" type="button" class="btn-game w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 font-black text-slate-600">✕</button>
+      </div>
+      <p class="text-sm sm:text-base font-bold text-slate-500 mb-4">
+        請選擇你嘅身分！老師開設房間投射大螢幕，學生輸入房號即可即時作答鬥快鬥準！
+      </p>
+
+      <!-- GAS Server URL Config Box (Hidden automatically once DEFAULT_GAS_URL is hardcoded) -->
+      <div id="gasConfigBox" class="mb-4 bg-violet-50 border border-violet-200 rounded-2xl p-3">
+        <div class="flex items-center justify-between gap-2 mb-1.5">
+          <label for="gasUrlInput" class="text-sm font-black text-violet-900">🔗 GAS 連線網址（/exec）</label>
+          <span id="gasStatusBadge" class="text-xs font-black px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">未設定</span>
+        </div>
+        <div class="flex gap-1.5">
+          <input id="gasUrlInput" type="url" placeholder="貼上 https://script.google.com/macros/s/.../exec"
+            class="flex-1 bg-white border border-violet-300 rounded-xl px-2.5 py-1.5 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-violet-400" />
+          <button id="saveGasUrlBtn" type="button"
+            class="btn-game bg-violet-600 hover:bg-violet-700 text-white font-black text-sm px-3 py-1.5 rounded-xl shrink-0">
+            儲存
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <button id="chooseTeacherBtn" type="button"
+          class="btn-game flex flex-col items-center justify-center gap-2 p-5 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-lg border-2 border-violet-300 hover:brightness-110">
+          <span class="text-4xl">👨‍🏫</span>
+          <span class="text-xl font-black">我是老師</span>
+          <span class="text-sm font-bold text-violet-100">開設房間・顯示磅面與龍虎榜</span>
+        </button>
+        <button id="chooseStudentBtn" type="button"
+          class="btn-game flex flex-col items-center justify-center gap-2 p-5 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg border-2 border-emerald-300 hover:brightness-110">
+          <span class="text-4xl">🧑‍🎓</span>
+          <span class="text-xl font-black">我是學生</span>
+          <span class="text-sm font-bold text-emerald-100">輸入房號・手機即時搶答</span>
+        </button>
+      </div>
+      <p id="roleModalError" class="hidden mt-3 text-sm font-black text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2 text-center"></p>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       KAHOOT TEACHER SETUP MODAL (Scale Type & Question Mode)
+       ===================================================================== -->
+  <div id="kahootTeacherSetupModal" class="hidden fixed inset-0 z-[75] bg-slate-900/65 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl border-4 border-violet-200 max-w-lg w-full p-5 sm:p-6 animate-bubble text-slate-800">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-xl font-black text-violet-800">👨‍🏫 老師開房設定</h2>
+        <button id="closeTeacherSetupBtn" type="button" class="btn-game w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 font-black text-slate-600">✕</button>
+      </div>
+
+      <!-- Step 1: Scale Type -->
+      <div class="mb-4">
+        <div class="text-sm font-black text-slate-600 mb-2">1️⃣ 選擇比賽磅款：</div>
+        <div class="grid grid-cols-3 gap-2">
+          <button type="button" data-kscale="mixed_g" class="ksetup-scale-btn btn-game py-2.5 px-2 rounded-xl text-sm sm:text-base font-black border-2">
+            🟢 g 磅
+          </button>
+          <button type="button" data-kscale="mixed_kg" class="ksetup-scale-btn btn-game py-2.5 px-2 rounded-xl text-sm sm:text-base font-black border-2">
+            🟡 kg 磅
+          </button>
+          <button type="button" data-kscale="mixed" class="ksetup-scale-btn btn-game py-2.5 px-2 rounded-xl text-sm sm:text-base font-black border-2">
+            🔀 混合
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 2: Question Mode -->
+      <div class="mb-4">
+        <div class="text-sm font-black text-slate-600 mb-2">2️⃣ 選擇作答方式：</div>
+        <div class="grid grid-cols-2 gap-2.5">
+          <button type="button" data-kmode="mc" class="ksetup-mode-btn btn-game py-3 px-3 rounded-xl text-sm sm:text-base font-black border-2">
+            🎨 選擇題（4色按鈕）
+          </button>
+          <button type="button" data-kmode="keypad" class="ksetup-mode-btn btn-game py-3 px-3 rounded-xl text-sm sm:text-base font-black border-2">
+            ⌨️ 填充題（數字輸入）
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3 text-sm font-bold text-slate-600 mb-4">
+        📌 規則：共 <b>10 題</b>，每題限時 <b>40 秒</b>，滿分 <b>100 分</b>（按作答快慢計分，答錯 0 分），老師可隨時中止比賽。
+      </div>
+
+      <button id="createKahootRoomBtn" type="button"
+        class="w-full btn-game bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-black text-lg py-3 rounded-2xl shadow-lg">
+        🚀 開設房間
+      </button>
+      <p id="teacherSetupError" class="hidden mt-2 text-sm font-black text-rose-600 text-center"></p>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       KAHOOT STUDENT FULL-SCREEN CONTROLLER OVERLAY
+       ===================================================================== -->
+  <div id="kahootStudentOverlay" class="hidden fixed inset-0 z-[80] bg-gradient-to-b from-indigo-950 via-violet-950 to-slate-900 text-white flex flex-col overflow-hidden">
+    <!-- Top Student Status Bar -->
+    <div class="shrink-0 bg-white/10 border-b border-white/15 px-4 py-2.5 flex items-center justify-between gap-2 safe-x">
+      <div class="flex items-center gap-2 min-w-0">
+        <span class="text-xl">📮</span>
+        <span id="stuHeaderTitle" class="font-black text-base truncate">郵局競技・學生端</span>
+        <span id="stuRoomPill" class="hidden bg-violet-500/40 border border-violet-300/50 text-xs sm:text-sm font-black px-2.5 py-0.5 rounded-full">房號 ----</span>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <span id="stuScorePill" class="hidden bg-amber-400 text-slate-950 font-black px-3 py-0.5 rounded-full text-sm">0 分</span>
+        <button id="stuExitBtn" type="button"
+          class="btn-game bg-white/15 hover:bg-white/25 border border-white/30 text-white font-black text-sm px-3 py-1 rounded-full">
+          退出
+        </button>
+      </div>
+    </div>
+
+    <!-- Student Body Area -->
+    <div class="flex-1 flex flex-col items-center justify-center p-4 overflow-y-auto safe-x">
+
+      <!-- STU VIEW 1: JOIN ROOM -->
+      <div id="stuJoinView" class="w-full max-w-md bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-5 sm:p-6 shadow-2xl">
+        <h2 class="text-2xl font-black text-center mb-4">🧑‍🎓 加入競技房間</h2>
+        <div class="space-y-3">
+          <div>
+            <label class="block text-sm font-bold text-violet-200 mb-1">4 位數字房號</label>
+            <input id="stuRoomInput" type="text" inputmode="numeric" maxlength="4" placeholder="例如：4829"
+              class="w-full bg-white text-slate-900 font-black text-2xl text-center tracking-[0.25em] rounded-2xl py-3 px-4 outline-none focus:ring-4 focus:ring-violet-400" />
+          </div>
+          <div>
+            <label class="block text-sm font-bold text-violet-200 mb-1">你的名稱（姓名／學號）</label>
+            <input id="stuNameInput" type="text" maxlength="12" placeholder="例如：小明 3A"
+              class="w-full bg-white text-slate-900 font-black text-xl text-center rounded-2xl py-3 px-4 outline-none focus:ring-4 focus:ring-emerald-400" />
+          </div>
+          <button id="stuJoinRoomBtn" type="button"
+            class="w-full btn-game bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-black text-xl py-3.5 rounded-2xl shadow-xl mt-2">
+            加入房間 🚀
+          </button>
+          <p id="stuJoinError" class="hidden text-sm font-black text-rose-200 bg-rose-500/30 border border-rose-400/50 rounded-xl px-3 py-2 text-center"></p>
+        </div>
+      </div>
+
+      <!-- STU VIEW 2: WAITING LOBBY -->
+      <div id="stuLobbyView" class="hidden w-full max-w-md text-center">
+        <div id="stuMyAvatar" class="text-6xl mb-3">🚀</div>
+        <h2 class="text-2xl font-black mb-1">成功加入房間！</h2>
+        <p id="stuWelcomeName" class="text-lg font-bold text-emerald-300 mb-4">你好，小明！</p>
+        <div class="bg-white/10 border border-white/20 rounded-2xl p-4 mb-4">
+          <div class="text-base font-bold text-violet-100 animate-pulse">⏳ 請望住老師大螢幕，等待比賽開始...</div>
+          <div id="stuLobbyCount" class="text-sm font-bold text-slate-300 mt-2">房間內目前有 1 位同學</div>
+        </div>
+      </div>
+
+      <!-- STU VIEW 3: ACTIVE QUESTION (4-Color MC or Liquid Glass Keypad) -->
+      <div id="stuQuestionView" class="hidden w-full max-w-xl flex flex-col gap-3">
+        <!-- Question Progress & Countdown -->
+        <div class="flex items-center justify-between bg-white/10 border border-white/20 rounded-2xl px-4 py-2">
+          <span id="stuQBadge" class="font-black text-base sm:text-lg text-amber-300">第 1 / 10 題</span>
+          <span id="stuScaleHint" class="text-sm font-bold text-violet-200">👀 睇實大螢幕個磅！</span>
+          <span id="stuTimerText" class="font-black text-lg bg-slate-900/80 px-3 py-0.5 rounded-full">40s</span>
+        </div>
+
+        <!-- Student MC Panel (4 Colored Options) -->
+        <div id="stuMcPanel" class="grid grid-cols-2 gap-3">
+          <!-- Injected dynamically -->
+        </div>
+
+        <!-- Student Keypad Panel (Liquid Glass) -->
+        <div id="stuKeypadPanel" class="hidden liquid-glass-panel rounded-3xl p-3 sm:p-4">
+          <div class="flex items-center gap-2 mb-3">
+            <!-- g Display -->
+            <div id="stuKpGRow" class="flex-1 flex items-center justify-center gap-1 liquid-glass-input rounded-2xl py-2 px-3">
+              <span id="stuKpDisplay" class="text-2xl sm:text-3xl font-black text-slate-500/60">___</span>
+              <span class="text-lg font-black text-slate-700">g</span>
+            </div>
+            <!-- kg + g Display -->
+            <div id="stuKpKgRow" class="hidden flex-1 flex items-center gap-1.5">
+              <button id="stuKpKgBox" type="button" class="flex-1 flex items-center justify-center gap-1 liquid-glass-input rounded-2xl py-2 px-2 ring-2 ring-emerald-500">
+                <span id="stuKpKgDisplay" class="text-2xl font-black text-slate-500/60">_</span>
+                <span class="text-base font-black text-slate-700">kg</span>
+              </button>
+              <button id="stuKpKgGBox" type="button" class="flex-[1.4] flex items-center justify-center gap-1 liquid-glass-input rounded-2xl py-2 px-2">
+                <span id="stuKpKgGDisplay" class="text-2xl font-black text-slate-500/60">___</span>
+                <span class="text-base font-black text-slate-700">g</span>
+              </button>
+            </div>
+            <button id="stuSubmitKpBtn" type="button"
+              class="btn-game bg-emerald-600 hover:bg-emerald-500 text-white font-black text-lg px-5 py-2.5 rounded-2xl shadow-lg shrink-0">
+              提交 ✓
+            </button>
+          </div>
+          <div class="grid grid-cols-4 gap-2">
+            <button type="button" data-sk="1" class="stu-kp-btn btn-game liquid-glass-key text-xl font-black py-3 rounded-xl">1</button>
+            <button type="button" data-sk="2" class="stu-kp-btn btn-game liquid-glass-key text-xl font-black py-3 rounded-xl">2</button>
+            <button type="button" data-sk="3" class="stu-kp-btn btn-game liquid-glass-key text-xl font-black py-3 rounded-xl">3</button>
+            <button type="button" data-sk="back" class="stu-kp-btn btn-game bg-rose-500/80 text-white text-xl font-black py-3 rounded-xl">⌫</button>
+            <button type="button" data-sk="4" class="stu-kp-btn btn-game liquid-glass-key text-xl font-black py-3 rounded-xl">4</button>
+            <button type="button" data-sk="5" class="stu-kp-btn btn-game liquid-glass-key text-xl font-black py-3 rounded-xl">5</button>
+            <button type="button" data-sk="6" class="stu-kp-btn btn-game liquid-glass-key text-xl font-black py-3 rounded-xl">6</button>
+            <button type="button" data-sk="clear" class="stu-kp-btn btn-game bg-amber-400/90 text-slate-900 text-base font-black py-3 rounded-xl">清除</button>
+            <button type="button" data-sk="7" class="stu-kp-btn btn-game liquid-glass-key text-xl font-black py-3 rounded-xl">7</button>
+            <button type="button" data-sk="8" class="stu-kp-btn btn-game liquid-glass-key text-xl font-black py-3 rounded-xl">8</button>
+            <button type="button" data-sk="9" class="stu-kp-btn btn-game liquid-glass-key text-xl font-black py-3 rounded-xl">9</button>
+            <button type="button" data-sk="0" class="stu-kp-btn btn-game liquid-glass-key text-xl font-black py-3 rounded-xl">0</button>
+          </div>
+        </div>
+
+        <!-- Submitted Waiting State -->
+        <div id="stuSubmittedBox" class="hidden bg-white/15 border-2 border-emerald-300/60 rounded-3xl p-6 text-center animate-bubble">
+          <div class="text-5xl mb-2">📨</div>
+          <div class="text-xl font-black text-emerald-300 mb-1">已提交答案！</div>
+          <div id="stuSubmittedAnswerText" class="text-base font-bold text-white mb-2">你揀咗：---</div>
+          <div class="text-sm font-bold text-violet-200 animate-pulse">等待其他同學作答及老師結算...</div>
+        </div>
+      </div>
+
+      <!-- STU VIEW 4: ROUND RESULT FEEDBACK -->
+      <div id="stuResultView" class="hidden w-full max-w-md rounded-3xl p-6 text-center shadow-2xl border-2 animate-bubble">
+        <div id="stuResEmoji" class="text-6xl mb-2">🎉</div>
+        <h3 id="stuResTitle" class="text-2xl font-black mb-1">答啱咗！</h3>
+        <div id="stuResPoints" class="text-4xl font-black text-amber-300 my-2">+92 分</div>
+        <div id="stuResCorrectText" class="text-base font-bold bg-black/25 rounded-xl py-2 px-4 inline-block mb-3">
+          正確答案：---
+        </div>
+        <div class="text-sm font-bold text-white/80">請留意大螢幕，老師即將公佈龍虎榜！</div>
+      </div>
+
+      <!-- STU VIEW 5: LEADERBOARD / FINISHED -->
+      <div id="stuRankView" class="hidden w-full max-w-md bg-white/10 border border-white/25 rounded-3xl p-5 text-center shadow-2xl">
+        <div id="stuRankHeader" class="text-lg font-black text-amber-300 mb-2">🏆 即時龍虎榜</div>
+        <div class="bg-white/15 rounded-2xl p-4 mb-4 border border-white/20">
+          <div class="text-sm font-bold text-violet-200">你目前嘅排名</div>
+          <div id="stuMyRankBig" class="text-4xl font-black text-white my-1">第 1 名</div>
+          <div id="stuMyRankDelta" class="text-base font-black text-emerald-300">總分：0 分</div>
+        </div>
+        <div id="stuMiniLb" class="space-y-1.5 text-left"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       GAME JAVASCRIPT ENGINE (Pure JS + Google Apps Script Multiplayer Sync)
        ===================================================================== -->
   <script>
-    (function () {
+    (() => {
       'use strict';
 
       // Disable right-click context menu across the entire app
@@ -1658,6 +2151,10 @@
         hintBtn: document.getElementById('hintBtn'),
         zoomBtn: document.getElementById('zoomBtn'),
 
+        scaleContainer: document.getElementById('scaleContainer'),
+        teachingReviewBackdrop: document.getElementById('teachingReviewBackdrop'),
+        teachingHintBanner: document.getElementById('teachingHintBanner'),
+        teachingHintText: document.getElementById('teachingHintText'),
         scaleSvg: document.getElementById('scaleSvg'),
         dialClickArea: document.getElementById('dialClickArea'),
         panGroup: document.getElementById('panGroup'),
@@ -1885,6 +2382,11 @@
       function updateSpeech(html, isHint = false) {
         els.speechText.innerHTML = html;
         els.hintLevelBadge.classList.toggle('hidden', !isHint);
+
+        if (mp && mp.isTeachingReview && isHint) {
+          els.teachingHintText.innerHTML = html;
+          els.teachingHintBanner.classList.remove('hidden');
+        }
 
         if (isHint) {
           els.speechBubble.classList.remove('bg-white/95', 'border-slate-200/90');
@@ -2493,13 +2995,1439 @@
         window.visualViewport.addEventListener('resize', fitStageToViewport);
       }
 
-      window.addEventListener('load', () => {
+      /* ===================================================================
+         14. KAHOOT COMPETITIVE MULTIPLAYER ENGINE (Google Apps Script Sync)
+         =================================================================== */
+      // ★ 已內置你的 GAS Web App 網址，全班免設定即連即玩！
+      const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbwFlt6oT1ly0zdeoS_Lk-DEZsiHAncp_UZ1RDkQSGVixB4lSAxwZcmpZfXs5vqB7XMOaQ/exec';
+      const GAS_STORAGE_KEY = 'p3weight_kahoot_gas_url';
+
+      const KAHOOT_TIME_LIMIT = 40; // 40 seconds per question
+      const KAHOOT_TOTAL_Q = 10;    // 10 questions per match
+      const POLL_INTERVAL_MS = 1200; // Poll GAS server every 1.2s
+      const STU_AVATARS = ['🐶', '🐱', '🐼', '🦊', '🐰', '🦁', '🐸', '🐨', '🐯', '🦄', '🐧', '🐻'];
+
+      // Generate a unique client ID per browser tab (allows testing Teacher + Student in 2 tabs)
+      function getOrCreateClientId() {
+        let id = sessionStorage.getItem('p3weight_client_id');
+        if (!id) {
+          id = 'u_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+          sessionStorage.setItem('p3weight_client_id', id);
+        }
+        return id;
+      }
+
+      function getGasUrl() {
+        if (DEFAULT_GAS_URL && DEFAULT_GAS_URL.trim()) return DEFAULT_GAS_URL.trim();
+        return (localStorage.getItem(GAS_STORAGE_KEY) || '').trim();
+      }
+
+      // JSONP 跨網域備援（解決預覽沙盒 blob: 或特殊網絡下 fetch POST/CORS 被阻擋的問題）
+      function gasJsonp(paramsObj) {
+        return new Promise((resolve, reject) => {
+          const base = getGasUrl();
+          if (!base) return reject(new Error('請先輸入 GAS 連線網址！'));
+          const cbName = '__gasCb_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
+          const script = document.createElement('script');
+          const timer = setTimeout(() => {
+            cleanup();
+            reject(new Error('連線逾時：請確認 GAS「誰可以存取」已設為「所有人」，並已部署「新版本」。'));
+          }, 12000);
+
+          function cleanup() {
+            clearTimeout(timer);
+            delete window[cbName];
+            if (script.parentNode) script.parentNode.removeChild(script);
+          }
+
+          window[cbName] = (data) => {
+            cleanup();
+            resolve(data);
+          };
+
+          script.onerror = () => {
+            cleanup();
+            reject(new Error('無法連線至 GAS：請確認已貼上最新版 kahoot_gas.js、部署為「新版本」，且「誰可以存取」設為「所有人」。'));
+          };
+
+          const qs = new URLSearchParams({ ...paramsObj, callback: cbName }).toString();
+          const sep = base.includes('?') ? '&' : '?';
+          script.src = `${base}${sep}${qs}`;
+          document.head.appendChild(script);
+        });
+      }
+
+      async function gasGet(paramsObj) {
+        const base = getGasUrl();
+        if (!base) throw new Error('請先輸入 GAS 連線網址！');
+        const qs = new URLSearchParams(paramsObj).toString();
+        const sep = base.includes('?') ? '&' : '?';
+        try {
+          const res = await fetch(`${base}${sep}${qs}`, {
+            method: 'GET',
+            mode: 'cors',
+            credentials: 'omit',
+            redirect: 'follow',
+            cache: 'no-store'
+          });
+          if (!res.ok) throw new Error('伺服器連線失敗 (' + res.status + ')');
+          return await res.json();
+        } catch (err) {
+          return gasJsonp(paramsObj);
+        }
+      }
+
+      async function gasPost(payload) {
+        const base = getGasUrl();
+        if (!base) throw new Error('請先輸入 GAS 連線網址！');
+        try {
+          const res = await fetch(base, {
+            method: 'POST',
+            mode: 'cors',
+            credentials: 'omit',
+            redirect: 'follow',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(payload)
+          });
+          if (!res.ok) throw new Error('伺服器寫入失敗 (' + res.status + ')');
+          return await res.json();
+        } catch (err) {
+          return gasJsonp({
+            action: payload.action || '',
+            code: payload.code || '',
+            payload: JSON.stringify(payload)
+          });
+        }
+      }
+
+      const mp = {
+        clientId: getOrCreateClientId(),
+        role: null,                 // 'teacher' | 'student' | null
+        roomCode: null,
+        roomData: null,
+        players: [],                // list of players in current room
+        pollTimer: null,
+        pollInFlight: false,
+
+        // Teacher setup & state
+        setupScale: 'mixed',
+        setupMode: 'mc',
+        teacherTimerInterval: null,
+        isTeachingReview: false,
+        lastRenderedStatusKey: '',
+        lbAnimTimeout: null,
+
+        // Student state
+        studentName: '',
+        studentAvatar: '🐶',
+        studentAnswers: {},         // { [qIdx]: { value, isCorrect, points, timeMs } }
+        studentSubmittedQ: -1,
+        stuKpVal: '',
+        stuKpKgVal: '',
+        stuKpActiveField: 'kg',
+        stuTimerInterval: null,
+        stuLastRenderedQ: -1,
+        stuPrevRank: null
+      };
+
+      const kEls = {
+        openKahootBtn: document.getElementById('openKahootBtn'),
+        answerPanelContainer: document.getElementById('answerPanelContainer'),
+        kahootRoleModal: document.getElementById('kahootRoleModal'),
+        closeRoleModalBtn: document.getElementById('closeRoleModalBtn'),
+        gasConfigBox: document.getElementById('gasConfigBox'),
+        gasUrlInput: document.getElementById('gasUrlInput'),
+        gasStatusBadge: document.getElementById('gasStatusBadge'),
+        saveGasUrlBtn: document.getElementById('saveGasUrlBtn'),
+        chooseTeacherBtn: document.getElementById('chooseTeacherBtn'),
+        chooseStudentBtn: document.getElementById('chooseStudentBtn'),
+        roleModalError: document.getElementById('roleModalError'),
+
+        kahootTeacherSetupModal: document.getElementById('kahootTeacherSetupModal'),
+        closeTeacherSetupBtn: document.getElementById('closeTeacherSetupBtn'),
+        createKahootRoomBtn: document.getElementById('createKahootRoomBtn'),
+        teacherSetupError: document.getElementById('teacherSetupError'),
+
+        teacherLiveHud: document.getElementById('teacherLiveHud'),
+        hudQBadge: document.getElementById('hudQBadge'),
+        hudRoomBadge: document.getElementById('hudRoomBadge'),
+        hudTimerBox: document.getElementById('hudTimerBox'),
+        hudTimerText: document.getElementById('hudTimerText'),
+        hudAnsweredText: document.getElementById('hudAnsweredText'),
+        hudSettleNowBtn: document.getElementById('hudSettleNowBtn'),
+        hudAbortBtn: document.getElementById('hudAbortBtn'),
+
+        teacherReviewBar: document.getElementById('teacherReviewBar'),
+        reviewBackResultBtn: document.getElementById('reviewBackResultBtn'),
+        reviewToLbBtn: document.getElementById('reviewToLbBtn'),
+
+        kahootTeacherOverlay: document.getElementById('kahootTeacherOverlay'),
+        teacherLobbyView: document.getElementById('teacherLobbyView'),
+        lobbyConfigBadge: document.getElementById('lobbyConfigBadge'),
+        lobbyRoomCode: document.getElementById('lobbyRoomCode'),
+        lobbyPlayerCount: document.getElementById('lobbyPlayerCount'),
+        lobbyPlayersGrid: document.getElementById('lobbyPlayersGrid'),
+        lobbyStartGameBtn: document.getElementById('lobbyStartGameBtn'),
+        lobbyCloseBtn: document.getElementById('lobbyCloseBtn'),
+
+        teacherResultView: document.getElementById('teacherResultView'),
+        resultQTitle: document.getElementById('resultQTitle'),
+        resultCorrectBanner: document.getElementById('resultCorrectBanner'),
+        resultChartContainer: document.getElementById('resultChartContainer'),
+        resultKeypadChips: document.getElementById('resultKeypadChips'),
+        resultShowScaleBtn: document.getElementById('resultShowScaleBtn'),
+        resultNextLbBtn: document.getElementById('resultNextLbBtn'),
+        resultAbortBtn: document.getElementById('resultAbortBtn'),
+
+        teacherLeaderboardView: document.getElementById('teacherLeaderboardView'),
+        lbProgressText: document.getElementById('lbProgressText'),
+        lbAnimatedList: document.getElementById('lbAnimatedList'),
+        lbNextQuestionBtn: document.getElementById('lbNextQuestionBtn'),
+        lbAbortBtn: document.getElementById('lbAbortBtn'),
+
+        teacherFinishedView: document.getElementById('teacherFinishedView'),
+        podiumHeading: document.getElementById('podiumHeading'),
+        podiumStage: document.getElementById('podiumStage'),
+        podiumNewGameBtn: document.getElementById('podiumNewGameBtn'),
+        podiumExitBtn: document.getElementById('podiumExitBtn'),
+
+        // Student DOM
+        kahootStudentOverlay: document.getElementById('kahootStudentOverlay'),
+        stuHeaderTitle: document.getElementById('stuHeaderTitle'),
+        stuRoomPill: document.getElementById('stuRoomPill'),
+        stuScorePill: document.getElementById('stuScorePill'),
+        stuExitBtn: document.getElementById('stuExitBtn'),
+        stuJoinView: document.getElementById('stuJoinView'),
+        stuRoomInput: document.getElementById('stuRoomInput'),
+        stuNameInput: document.getElementById('stuNameInput'),
+        stuJoinRoomBtn: document.getElementById('stuJoinRoomBtn'),
+        stuJoinError: document.getElementById('stuJoinError'),
+
+        stuLobbyView: document.getElementById('stuLobbyView'),
+        stuMyAvatar: document.getElementById('stuMyAvatar'),
+        stuWelcomeName: document.getElementById('stuWelcomeName'),
+        stuLobbyCount: document.getElementById('stuLobbyCount'),
+
+        stuQuestionView: document.getElementById('stuQuestionView'),
+        stuQBadge: document.getElementById('stuQBadge'),
+        stuScaleHint: document.getElementById('stuScaleHint'),
+        stuTimerText: document.getElementById('stuTimerText'),
+        stuMcPanel: document.getElementById('stuMcPanel'),
+        stuKeypadPanel: document.getElementById('stuKeypadPanel'),
+        stuKpGRow: document.getElementById('stuKpGRow'),
+        stuKpDisplay: document.getElementById('stuKpDisplay'),
+        stuKpKgRow: document.getElementById('stuKpKgRow'),
+        stuKpKgBox: document.getElementById('stuKpKgBox'),
+        stuKpKgDisplay: document.getElementById('stuKpKgDisplay'),
+        stuKpKgGBox: document.getElementById('stuKpKgGBox'),
+        stuKpKgGDisplay: document.getElementById('stuKpKgGDisplay'),
+        stuSubmitKpBtn: document.getElementById('stuSubmitKpBtn'),
+        stuSubmittedBox: document.getElementById('stuSubmittedBox'),
+        stuSubmittedAnswerText: document.getElementById('stuSubmittedAnswerText'),
+
+        stuResultView: document.getElementById('stuResultView'),
+        stuResEmoji: document.getElementById('stuResEmoji'),
+        stuResTitle: document.getElementById('stuResTitle'),
+        stuResPoints: document.getElementById('stuResPoints'),
+        stuResCorrectText: document.getElementById('stuResCorrectText'),
+
+        stuRankView: document.getElementById('stuRankView'),
+        stuRankHeader: document.getElementById('stuRankHeader'),
+        stuMyRankBig: document.getElementById('stuMyRankBig'),
+        stuMyRankDelta: document.getElementById('stuMyRankDelta'),
+        stuMiniLb: document.getElementById('stuMiniLb')
+      };
+
+      function refreshGasConfigUi() {
+        if (DEFAULT_GAS_URL && DEFAULT_GAS_URL.trim()) {
+          kEls.gasConfigBox.classList.add('hidden');
+          return;
+        }
+        kEls.gasConfigBox.classList.remove('hidden');
+        const saved = getGasUrl();
+        kEls.gasUrlInput.value = saved;
+        if (saved && saved.startsWith('https://script.google.com/')) {
+          kEls.gasStatusBadge.textContent = '✅ 已設定';
+          kEls.gasStatusBadge.className = 'text-xs font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800';
+        } else {
+          kEls.gasStatusBadge.textContent = '未設定';
+          kEls.gasStatusBadge.className = 'text-xs font-black px-2 py-0.5 rounded-full bg-amber-100 text-amber-800';
+        }
+      }
+
+      function generateKahootQuestions(scaleFilter, count = KAHOOT_TOTAL_Q) {
+        const gScaleKeys = ['green', 'blue', 'orange'];
+        const kgScaleKeys = ['kg2', 'kg3', 'kg5a', 'kg5b'];
+        const pool = scaleFilter === 'mixed_g'
+          ? gScaleKeys
+          : scaleFilter === 'mixed_kg'
+          ? kgScaleKeys
+          : [...gScaleKeys, ...kgScaleKeys];
+
+        const questions = [];
+        let lastCustId = null;
+
+        for (let i = 0; i < count; i++) {
+          const scaleKey = pool[Math.floor(Math.random() * pool.length)];
+          const scale = SCALES[scaleKey];
+          const validItems = ITEMS.filter((it) => it.scales.includes(scale.id));
+          const item = validItems[Math.floor(Math.random() * validItems.length)];
+
+          const custPool = CUSTOMERS.filter((c) => c.id !== lastCustId);
+          const customer = custPool[Math.floor(Math.random() * custPool.length)];
+          lastCustId = customer.id;
+
+          const minAllowed = Math.max(scale.smallStep * 2, item.minW);
+          const maxAllowed = Math.min(scale.max - scale.smallStep, item.maxW);
+          const minTicks = Math.ceil(minAllowed / scale.smallStep);
+          const maxTicks = Math.floor(maxAllowed / scale.smallStep);
+          const chosenTicks = minTicks + Math.floor(Math.random() * Math.max(1, maxTicks - minTicks + 1));
+          const weight = chosenTicks * scale.smallStep;
+          const options = generateOptions(weight, scale);
+
+          questions.push({
+            scaleId: scale.id,
+            itemId: item.id,
+            customerId: customer.id,
+            weight,
+            options
+          });
+        }
+        return questions;
+      }
+
+      function parsePlayerAnswers(player) {
+        try {
+          return player.answersJson ? JSON.parse(player.answersJson) : {};
+        } catch {
+          return {};
+        }
+      }
+
+      function computePlayerScoresAt(player, qIndex) {
+        const answers = parsePlayerAnswers(player);
+        let prevScore = 0;
+        let totalScore = 0;
+        let roundPoints = 0;
+        for (const [k, ans] of Object.entries(answers)) {
+          const idx = parseInt(k, 10);
+          const pts = Number(ans?.points || 0);
+          if (idx < qIndex) prevScore += pts;
+          if (idx <= qIndex) totalScore += pts;
+          if (idx === qIndex) roundPoints = pts;
+        }
+        return { prevScore, totalScore, roundPoints, answers };
+      }
+
+      function cleanupMultiplayer() {
+        if (mp.pollTimer) { clearInterval(mp.pollTimer); mp.pollTimer = null; }
+        mp.pollInFlight = false;
+        if (mp.teacherTimerInterval) { clearInterval(mp.teacherTimerInterval); mp.teacherTimerInterval = null; }
+        if (mp.stuTimerInterval) { clearInterval(mp.stuTimerInterval); mp.stuTimerInterval = null; }
+        if (mp.lbAnimTimeout) { clearTimeout(mp.lbAnimTimeout); mp.lbAnimTimeout = null; }
+
+        mp.role = null;
+        mp.roomCode = null;
+        mp.roomData = null;
+        mp.players = [];
+        mp.isTeachingReview = false;
+        mp.lastRenderedStatusKey = '';
+        mp.studentAnswers = {};
+        mp.studentSubmittedQ = -1;
+        mp.stuLastRenderedQ = -1;
+        mp.stuPrevRank = null;
+
+        document.body.classList.remove('in-student-kahoot');
+        kEls.kahootTeacherOverlay.classList.add('hidden');
+        kEls.teacherLiveHud.classList.add('hidden');
+        kEls.teacherReviewBar.classList.add('hidden');
+        kEls.kahootStudentOverlay.classList.add('hidden');
+        kEls.answerPanelContainer.classList.remove('hidden');
+
+        // Restore solo stage visuals if exiting from Teaching Review
+        els.teachingReviewBackdrop.classList.add('hidden');
+        els.teachingHintBanner.classList.add('hidden');
+        els.speechBubble.classList.remove('hidden');
+        els.scaleContainer.classList.remove('scale-teaching-focus');
+
+        // Return cleanly to Solo Mode
+        loadNextCustomer();
+      }
+
+      function subscribeToRoomAndPlayers(roomCode, onUpdate) {
+        if (mp.pollTimer) clearInterval(mp.pollTimer);
+        mp.pollInFlight = false;
+
+        const doPoll = async () => {
+          if (mp.pollInFlight || !mp.roomCode) return;
+          mp.pollInFlight = true;
+          try {
+            const data = await gasGet({ action: 'poll', code: roomCode });
+            if (data && data.ok && data.room) {
+              // Teacher is the single source of truth for roomData: never overwrite local room state with delayed server polls!
+              if (mp.role === 'student') {
+                const incomingTs = Number(data.room.updatedAt || 0);
+                const currentTs = Number((mp.roomData && mp.roomData.updatedAt) || 0);
+                if (!mp.roomData || incomingTs >= currentTs) {
+                  mp.roomData = data.room;
+                }
+              }
+              const list = Array.isArray(data.players) ? data.players : [];
+              list.sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
+              mp.players = list;
+              onUpdate();
+            }
+          } catch (err) {
+            console.error('GAS poll error:', err);
+          } finally {
+            mp.pollInFlight = false;
+          }
+        };
+
+        doPoll();
+        mp.pollTimer = setInterval(doPoll, POLL_INTERVAL_MS);
+      }
+
+      /* -------------------------------------------------------------------
+         TEACHER FLOW
+         ------------------------------------------------------------------- */
+      function updateTeacherSetupPills() {
+        document.querySelectorAll('.ksetup-scale-btn').forEach((btn) => {
+          const active = btn.dataset.kscale === mp.setupScale;
+          btn.className = 'ksetup-scale-btn btn-game py-2.5 px-2 rounded-xl text-sm sm:text-base font-black border-2 ' + (
+            active ? 'bg-violet-600 text-white border-violet-600 shadow' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+          );
+        });
+        document.querySelectorAll('.ksetup-mode-btn').forEach((btn) => {
+          const active = btn.dataset.kmode === mp.setupMode;
+          btn.className = 'ksetup-mode-btn btn-game py-3 px-3 rounded-xl text-sm sm:text-base font-black border-2 ' + (
+            active ? 'bg-emerald-600 text-white border-emerald-600 shadow' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+          );
+        });
+      }
+
+      async function createTeacherRoom() {
+        kEls.teacherSetupError.classList.add('hidden');
+        if (!getGasUrl()) {
+          kEls.teacherSetupError.textContent = '請先返回上一頁貼上你的 GAS 連線網址！';
+          kEls.teacherSetupError.classList.remove('hidden');
+          return;
+        }
+
+        kEls.createKahootRoomBtn.disabled = true;
+        kEls.createKahootRoomBtn.textContent = '連線開設中...';
+
+        const roomCode = String(1000 + Math.floor(Math.random() * 9000));
+        const questions = generateKahootQuestions(mp.setupScale, KAHOOT_TOTAL_Q);
+        const roomPayload = {
+          code: roomCode,
+          hostId: mp.clientId,
+          scaleFilter: mp.setupScale,
+          inputMode: mp.setupMode,
+          status: 'lobby',
+          totalQuestions: KAHOOT_TOTAL_Q,
+          currentIndex: 0,
+          questionsJson: JSON.stringify(questions),
+          questionStartTime: 0,
+          updatedAt: Date.now()
+        };
+
+        try {
+          const res = await gasPost({ action: 'createRoom', code: roomCode, room: roomPayload });
+          if (!res || !res.ok) {
+            throw new Error((res && res.error) || '伺服器回應異常');
+          }
+
+          mp.role = 'teacher';
+          mp.roomCode = roomCode;
+          mp.roomData = roomPayload;
+          mp.players = [];
+          mp.isTeachingReview = false;
+          mp.lastRenderedStatusKey = '';
+
+          kEls.kahootTeacherSetupModal.classList.add('hidden');
+          kEls.answerPanelContainer.classList.add('hidden');
+          kEls.createKahootRoomBtn.disabled = false;
+          kEls.createKahootRoomBtn.textContent = '🚀 開設房間';
+
+          renderTeacherState();
+          subscribeToRoomAndPlayers(roomCode, renderTeacherState);
+        } catch (err) {
+          console.error(err);
+          kEls.teacherSetupError.textContent = '開設房間失敗：' + (err.message || '請確認 GAS 網址及權限設為「所有人」。');
+          kEls.teacherSetupError.classList.remove('hidden');
+          kEls.createKahootRoomBtn.disabled = false;
+          kEls.createKahootRoomBtn.textContent = '🚀 開設房間';
+        }
+      }
+
+      function loadKahootQuestionOnStage(q) {
+        resetPackingOverlay();
+        state.isSolved = false;
+        state.hintLevel = 0;
+        els.hintBtn.disabled = false;
+
+        const scale = SCALES[q.scaleId];
+        const item = ITEMS.find((it) => it.id === q.itemId) || ITEMS[0];
+        const customer = CUSTOMERS.find((c) => c.id === q.customerId) || CUSTOMERS[0];
+
+        state.currentScale = scale;
+        state.currentItem = item;
+        state.currentCustomer = customer;
+        state.targetWeight = q.weight;
+
+        renderScale(scale);
+        els.itemLayer.innerHTML = item.renderSvg();
+        state.targetAngle = (q.weight / scale.max) * 360;
+        state.targetPanOffset = 10;
+        state.panVel = 2.6;
+
+        els.speakerNameTag.textContent = customer.name;
+        els.speakerNameTag.className = `stage-badge-text inline-flex items-center font-black rounded-full ${customer.tagBg}`;
+        setCustomerVisual(customer, 'normal', true);
+        updateSpeech(customer.greeting(item), false);
+        playSound('bell');
+      }
+
+      async function teacherUpdateRoom(patch) {
+        if (!mp.roomCode) return;
+        // Optimistic UI update for instant teacher responsiveness
+        if (mp.roomData) {
+          mp.roomData = { ...mp.roomData, ...patch, updatedAt: Date.now() };
+          renderTeacherState();
+        }
+        try {
+          await gasPost({ action: 'updateRoom', code: mp.roomCode, patch });
+        } catch (err) {
+          console.error('Update room failed:', err);
+        }
+      }
+
+      function renderTeacherState() {
+        if (mp.role !== 'teacher' || !mp.roomData) return;
+        const room = mp.roomData;
+        const questions = JSON.parse(room.questionsJson || '[]');
+        const qIdx = room.currentIndex || 0;
+        const q = questions[qIdx];
+
+        // Hide all sub-views first
+        kEls.teacherLobbyView.classList.add('hidden');
+        kEls.teacherResultView.classList.add('hidden');
+        kEls.teacherLeaderboardView.classList.add('hidden');
+        kEls.teacherFinishedView.classList.add('hidden');
+        kEls.teacherLiveHud.classList.add('hidden');
+        kEls.teacherReviewBar.classList.add('hidden');
+
+        // Reset scale-only teaching review state by default
+        const inScaleOnlyReview = (room.status === 'result' && mp.isTeachingReview);
+        els.teachingReviewBackdrop.classList.toggle('hidden', !inScaleOnlyReview);
+        els.speechBubble.classList.toggle('hidden', inScaleOnlyReview);
+        els.scaleContainer.classList.toggle('scale-teaching-focus', inScaleOnlyReview);
+        if (!inScaleOnlyReview) {
+          els.teachingHintBanner.classList.add('hidden');
+        }
+
+        if (room.status === 'lobby') {
+          if (mp.teacherTimerInterval) { clearInterval(mp.teacherTimerInterval); mp.teacherTimerInterval = null; }
+          kEls.kahootTeacherOverlay.classList.remove('hidden');
+          kEls.teacherLobbyView.classList.remove('hidden');
+          kEls.lobbyRoomCode.textContent = room.code;
+          const scaleTxt = room.scaleFilter === 'mixed_g' ? 'g 磅' : room.scaleFilter === 'mixed_kg' ? 'kg 磅' : '混合磅款';
+          const modeTxt = room.inputMode === 'keypad' ? '填充題' : '選擇題';
+          kEls.lobbyConfigBadge.textContent = `${scaleTxt} • ${modeTxt} • ${room.totalQuestions} 題`;
+          kEls.lobbyPlayerCount.textContent = mp.players.length;
+
+          if (mp.players.length === 0) {
+            kEls.lobbyPlayersGrid.innerHTML = `<div class="w-full text-center text-slate-300 font-bold py-6 text-base">等待學生加入房間中...</div>`;
+          } else {
+            kEls.lobbyPlayersGrid.innerHTML = mp.players.map((p) => `
+              <span class="inline-flex items-center gap-1.5 bg-white/15 border border-white/25 rounded-full px-3 py-1 text-sm sm:text-base font-black text-white shadow-sm animate-bubble">
+                <span>${p.avatar || '🧑‍🎓'}</span><span>${p.name}</span>
+              </span>
+            `).join('');
+          }
+          return;
+        }
+
+        if (room.status === 'question' && q) {
+          kEls.kahootTeacherOverlay.classList.add('hidden');
+          kEls.teacherLiveHud.classList.remove('hidden');
+          kEls.hudQBadge.textContent = `第 ${qIdx + 1} / ${room.totalQuestions} 題`;
+          kEls.hudRoomBadge.textContent = `房號 ${room.code}`;
+
+          const statusKey = `question_${qIdx}`;
+          if (mp.lastRenderedStatusKey !== statusKey) {
+            mp.lastRenderedStatusKey = statusKey;
+            mp.isTeachingReview = false;
+            loadKahootQuestionOnStage(q);
+            startTeacherCountdown(room.questionStartTime || Date.now());
+          }
+
+          let answeredCount = 0;
+          mp.players.forEach((p) => {
+            const ans = parsePlayerAnswers(p);
+            if (ans[qIdx]) answeredCount++;
+          });
+          kEls.hudAnsweredText.textContent = `${answeredCount} / ${mp.players.length} 人`;
+
+          // Auto-settle once all joined students have answered
+          if (mp.players.length > 0 && answeredCount >= mp.players.length) {
+            teacherUpdateRoom({ status: 'result' });
+          }
+          return;
+        }
+
+        if (room.status === 'result' && q) {
+          if (mp.teacherTimerInterval) { clearInterval(mp.teacherTimerInterval); mp.teacherTimerInterval = null; }
+          if (mp.isTeachingReview) {
+            kEls.kahootTeacherOverlay.classList.add('hidden');
+            kEls.teacherReviewBar.classList.remove('hidden');
+          } else {
+            kEls.kahootTeacherOverlay.classList.remove('hidden');
+            kEls.teacherResultView.classList.remove('hidden');
+            const statusKey = `result_${qIdx}`;
+            if (mp.lastRenderedStatusKey !== statusKey) {
+              mp.lastRenderedStatusKey = statusKey;
+              renderTeacherResultChart(q, qIdx, room.inputMode, room.totalQuestions);
+            }
+          }
+          return;
+        }
+
+        if (room.status === 'leaderboard') {
+          if (mp.teacherTimerInterval) { clearInterval(mp.teacherTimerInterval); mp.teacherTimerInterval = null; }
+          kEls.kahootTeacherOverlay.classList.remove('hidden');
+          kEls.teacherLeaderboardView.classList.remove('hidden');
+          kEls.lbProgressText.textContent = `完成第 ${qIdx + 1} / ${room.totalQuestions} 題`;
+          kEls.lbNextQuestionBtn.textContent = (qIdx + 1 >= room.totalQuestions)
+            ? '🏁 觀看最終頒獎台'
+            : `➡️ 進入第 ${qIdx + 2} 題`;
+
+          const statusKey = `leaderboard_${qIdx}`;
+          if (mp.lastRenderedStatusKey !== statusKey) {
+            mp.lastRenderedStatusKey = statusKey;
+            renderAnimatedLeaderboard(qIdx);
+          }
+          return;
+        }
+
+        if (room.status === 'finished' || room.status === 'aborted') {
+          if (mp.teacherTimerInterval) { clearInterval(mp.teacherTimerInterval); mp.teacherTimerInterval = null; }
+          kEls.kahootTeacherOverlay.classList.remove('hidden');
+          kEls.teacherFinishedView.classList.remove('hidden');
+          kEls.podiumHeading.textContent = room.status === 'aborted'
+            ? '⏹ 比賽已結束！最終成績頒獎台 🏆'
+            : '🎉 競技大賽圓滿結束！頒獎台 🏆';
+
+          const statusKey = `finished_${room.status}_${qIdx}`;
+          if (mp.lastRenderedStatusKey !== statusKey) {
+            mp.lastRenderedStatusKey = statusKey;
+            renderFinalPodium(qIdx);
+          }
+        }
+      }
+
+      function startTeacherCountdown(startTime) {
+        if (mp.teacherTimerInterval) clearInterval(mp.teacherTimerInterval);
+        const tick = () => {
+          const elapsed = Math.floor((Date.now() - startTime) / 1000);
+          const remaining = Math.max(0, KAHOOT_TIME_LIMIT - elapsed);
+          kEls.hudTimerText.textContent = remaining;
+          if (remaining <= 10) {
+            kEls.hudTimerBox.classList.add('bg-rose-600', 'timer-urgent');
+            kEls.hudTimerBox.classList.remove('bg-slate-900');
+          } else {
+            kEls.hudTimerBox.classList.remove('bg-rose-600', 'timer-urgent');
+            kEls.hudTimerBox.classList.add('bg-slate-900');
+          }
+          if (remaining <= 0) {
+            clearInterval(mp.teacherTimerInterval);
+            mp.teacherTimerInterval = null;
+            if (mp.roomData && mp.roomData.status === 'question') {
+              teacherUpdateRoom({ status: 'result' });
+            }
+          }
+        };
+        tick();
+        mp.teacherTimerInterval = setInterval(tick, 250);
+      }
+
+      function renderTeacherResultChart(q, qIdx, inputMode, totalQuestions) {
+        const scale = SCALES[q.scaleId];
+        const correctLabel = formatWeight(q.weight, scale.unit);
+        kEls.resultQTitle.textContent = `📊 第 ${qIdx + 1} / ${totalQuestions} 題結算`;
+        kEls.resultCorrectBanner.textContent = `✅ 正確答案：${correctLabel}`;
+        kEls.resultChartContainer.innerHTML = '';
+        kEls.resultKeypadChips.innerHTML = '';
+
+        if (inputMode === 'mc') {
+          kEls.resultKeypadChips.classList.add('hidden');
+          const counts = q.options.map((opt) => {
+            let c = 0;
+            mp.players.forEach((p) => {
+              const ans = parsePlayerAnswers(p)[qIdx];
+              if (ans && ans.value === opt) c++;
+            });
+            return c;
+          });
+          const maxCount = Math.max(1, ...counts);
+
+          q.options.forEach((opt, idx) => {
+            const isCorrect = opt === q.weight;
+            const pct = Math.max(14, Math.round((counts[idx] / maxCount) * 100));
+            const col = document.createElement('div');
+            col.className = 'flex-1 max-w-[165px] h-full flex flex-col items-center justify-end gap-1.5';
+            col.innerHTML = `
+              <div class="text-lg sm:text-2xl font-black text-white drop-shadow">${counts[idx]} 人</div>
+              <div class="w-full flex-1 flex items-end justify-center min-h-[90px]">
+                <div data-correct="${isCorrect ? '1' : '0'}"
+                  class="kahoot-bar-fill mc-color-${idx % 4} w-full rounded-t-2xl border-2 border-white/50 shadow-xl flex items-start justify-center pt-2"
+                  style="height: 10%;">
+                  <span class="bar-check-icon hidden text-xl sm:text-2xl drop-shadow">✅</span>
+                </div>
+              </div>
+              <div class="w-full text-center bg-white/15 border border-white/25 rounded-xl py-1.5 px-1 text-sm sm:text-lg font-black text-white truncate">
+                ${formatWeight(opt, scale.unit)}
+              </div>
+            `;
+            kEls.resultChartContainer.appendChild(col);
+
+            requestAnimationFrame(() => {
+              const bar = col.querySelector('.kahoot-bar-fill');
+              if (bar) bar.style.height = `${pct}%`;
+            });
+          });
+
+          // Light up the correct answer bar after bars animate up
+          setTimeout(() => {
+            playSound('correct');
+            kEls.resultChartContainer.querySelectorAll('.kahoot-bar-fill').forEach((bar) => {
+              if (bar.dataset.correct === '1') {
+                bar.classList.add('bar-correct-lit');
+                const icon = bar.querySelector('.bar-check-icon');
+                if (icon) icon.classList.remove('hidden');
+              } else {
+                bar.classList.add('bar-dimmed');
+              }
+            });
+          }, 550);
+        } else {
+          // Keypad mode: Correct vs Incorrect/Unanswered bars + answer chips
+          let correctCnt = 0;
+          let wrongCnt = 0;
+          const answerFreq = {};
+
+          mp.players.forEach((p) => {
+            const ans = parsePlayerAnswers(p)[qIdx];
+            if (ans && ans.isCorrect) {
+              correctCnt++;
+            } else {
+              wrongCnt++;
+            }
+            if (ans) {
+              const lbl = formatWeight(ans.value, scale.unit);
+              answerFreq[lbl] = (answerFreq[lbl] || 0) + 1;
+            }
+          });
+
+          const maxCount = Math.max(1, correctCnt, wrongCnt);
+          const bars = [
+            { label: `✅ 答啱 (${correctLabel})`, count: correctCnt, cls: 'bg-gradient-to-t from-emerald-600 to-emerald-400', isCorrect: true },
+            { label: '❌ 答錯 / 未答', count: wrongCnt, cls: 'bg-gradient-to-t from-rose-600 to-rose-400', isCorrect: false }
+          ];
+
+          bars.forEach((b) => {
+            const pct = Math.max(14, Math.round((b.count / maxCount) * 100));
+            const col = document.createElement('div');
+            col.className = 'w-[34%] max-w-[200px] h-full flex flex-col items-center justify-end gap-1.5';
+            col.innerHTML = `
+              <div class="text-xl sm:text-2xl font-black text-white">${b.count} 人</div>
+              <div class="w-full flex-1 flex items-end justify-center min-h-[90px]">
+                <div data-correct="${b.isCorrect ? '1' : '0'}"
+                  class="kahoot-bar-fill ${b.cls} w-full rounded-t-2xl border-2 border-white/50 shadow-xl"
+                  style="height: 10%;"></div>
+              </div>
+              <div class="w-full text-center bg-white/15 border border-white/25 rounded-xl py-1.5 px-2 text-sm sm:text-base font-black text-white">
+                ${b.label}
+              </div>
+            `;
+            kEls.resultChartContainer.appendChild(col);
+            requestAnimationFrame(() => {
+              const bar = col.querySelector('.kahoot-bar-fill');
+              if (bar) bar.style.height = `${pct}%`;
+            });
+          });
+
+          const entries = Object.entries(answerFreq).sort((a, b) => b[1] - a[1]).slice(0, 6);
+          if (entries.length > 0) {
+            kEls.resultKeypadChips.classList.remove('hidden');
+            kEls.resultKeypadChips.innerHTML = entries.map(([lbl, cnt]) => {
+              const isC = lbl === correctLabel;
+              return `<span class="px-3 py-1 rounded-full text-sm font-black ${isC ? 'bg-emerald-500 text-white ring-2 ring-amber-300' : 'bg-white/15 text-slate-200'}">${lbl}：${cnt}人</span>`;
+            }).join('');
+          } else {
+            kEls.resultKeypadChips.classList.add('hidden');
+          }
+
+          setTimeout(() => {
+            playSound('correct');
+            kEls.resultChartContainer.querySelectorAll('.kahoot-bar-fill').forEach((bar) => {
+              if (bar.dataset.correct === '1') bar.classList.add('bar-correct-lit');
+              else bar.classList.add('bar-dimmed');
+            });
+          }, 550);
+        }
+      }
+
+      function renderAnimatedLeaderboard(qIdx) {
+        if (mp.lbAnimTimeout) clearTimeout(mp.lbAnimTimeout);
+        kEls.lbAnimatedList.innerHTML = '';
+
+        if (mp.players.length === 0) {
+          kEls.lbAnimatedList.style.height = 'auto';
+          kEls.lbAnimatedList.innerHTML = `<div class="text-center text-slate-300 font-bold py-8">暫時未有學生分數紀錄</div>`;
+          return;
+        }
+
+        const list = mp.players.map((p) => {
+          const s = computePlayerScoresAt(p, qIdx);
+          return {
+            playerId: p.playerId,
+            name: p.name,
+            avatar: p.avatar || '🧑‍🎓',
+            prevScore: s.prevScore,
+            roundPoints: s.roundPoints,
+            totalScore: s.totalScore
+          };
+        });
+
+        // Initial ordering before adding this round's score
+        const prevSorted = [...list].sort((a, b) => b.prevScore - a.prevScore || a.name.localeCompare(b.name));
+        const newSorted = [...list].sort((a, b) => b.totalScore - a.totalScore || a.name.localeCompare(b.name));
+
+        const prevRankMap = {};
+        prevSorted.forEach((p, i) => { prevRankMap[p.playerId] = i; });
+        const newRankMap = {};
+        newSorted.forEach((p, i) => { newRankMap[p.playerId] = i; });
+
+        const rowHeight = 56;
+        kEls.lbAnimatedList.style.height = `${list.length * rowHeight + 8}px`;
+
+        const rowEls = {};
+        prevSorted.forEach((p, startIdx) => {
+          const row = document.createElement('div');
+          row.className = 'lb-row-animated h-[48px] bg-white/15 border border-white/25 rounded-2xl px-4 flex items-center justify-between shadow-md';
+          row.style.transform = `translateY(${startIdx * rowHeight}px)`;
+          row.innerHTML = `
+            <div class="flex items-center gap-2.5 min-w-0">
+              <span class="lb-rank w-8 text-center font-black text-lg">${startIdx === 0 ? '🥇' : startIdx === 1 ? '🥈' : startIdx === 2 ? '🥉' : startIdx + 1}</span>
+              <span class="text-xl">${p.avatar}</span>
+              <span class="font-black text-base sm:text-lg text-white truncate">${p.name}</span>
+              <span class="lb-delta hidden text-xs sm:text-sm font-black px-2 py-0.5 rounded-full"></span>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              ${p.roundPoints > 0 ? `<span class="bg-emerald-500/90 text-white text-xs sm:text-sm font-black px-2 py-0.5 rounded-full">+${p.roundPoints}</span>` : ''}
+              <span class="lb-score font-black text-lg sm:text-xl text-amber-300 min-w-[68px] text-right">${p.prevScore} 分</span>
+            </div>
+          `;
+          kEls.lbAnimatedList.appendChild(row);
+          rowEls[p.playerId] = row;
+        });
+
+        // Animate score addition and rank movement
+        mp.lbAnimTimeout = setTimeout(() => {
+          playSound('correct');
+          newSorted.forEach((p, newIdx) => {
+            const row = rowEls[p.playerId];
+            if (!row) return;
+            row.style.transform = `translateY(${newIdx * rowHeight}px)`;
+            const rankEl = row.querySelector('.lb-rank');
+            const scoreEl = row.querySelector('.lb-score');
+            const deltaEl = row.querySelector('.lb-delta');
+
+            if (rankEl) rankEl.textContent = newIdx === 0 ? '🥇' : newIdx === 1 ? '🥈' : newIdx === 2 ? '🥉' : String(newIdx + 1);
+            if (scoreEl) scoreEl.textContent = `${p.totalScore} 分`;
+
+            const diff = prevRankMap[p.playerId] - newIdx;
+            if (qIdx > 0 && deltaEl && diff !== 0) {
+              deltaEl.classList.remove('hidden');
+              if (diff > 0) {
+                deltaEl.textContent = `▲ ${diff}`;
+                deltaEl.className = 'lb-delta text-xs sm:text-sm font-black px-2 py-0.5 rounded-full bg-emerald-400/30 text-emerald-200';
+              } else {
+                deltaEl.textContent = `▼ ${Math.abs(diff)}`;
+                deltaEl.className = 'lb-delta text-xs sm:text-sm font-black px-2 py-0.5 rounded-full bg-rose-400/30 text-rose-200';
+              }
+            }
+            if (newIdx === 0) {
+              row.classList.add('bg-amber-400/25', 'border-amber-300');
+            }
+          });
+        }, 650);
+      }
+
+      function renderFinalPodium(qIdx) {
+        const ranked = mp.players.map((p) => {
+          const s = computePlayerScoresAt(p, qIdx);
+          return { name: p.name, avatar: p.avatar || '🧑‍🎓', score: s.totalScore };
+        }).sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
+
+        if (ranked.length === 0) {
+          kEls.podiumStage.innerHTML = `<div class="text-slate-300 font-bold text-lg">今場比賽未有學生參賽</div>`;
+          return;
+        }
+
+        const top3 = [
+          { idx: 1, medal: '🥈', title: '亞軍', h: 'h-[58%]', bg: 'from-slate-300 to-slate-500' },
+          { idx: 0, medal: '🥇', title: '冠軍', h: 'h-[82%]', bg: 'from-amber-300 to-amber-500' },
+          { idx: 2, medal: '🥉', title: '季軍', h: 'h-[46%]', bg: 'from-orange-300 to-orange-600' }
+        ];
+
+        kEls.podiumStage.innerHTML = top3.map((slot) => {
+          const p = ranked[slot.idx];
+          if (!p) return '';
+          return `
+            <div class="w-[28%] max-w-[190px] h-full flex flex-col items-center justify-end">
+              <div class="text-3xl sm:text-4xl mb-1 animate-bounce">${p.avatar}</div>
+              <div class="font-black text-base sm:text-lg text-white truncate max-w-full mb-1">${p.name}</div>
+              <div class="${slot.h} w-full rounded-t-2xl bg-gradient-to-b ${slot.bg} border-2 border-white/60 shadow-2xl flex flex-col items-center justify-center p-2 text-slate-950">
+                <div class="text-2xl sm:text-3xl">${slot.medal}</div>
+                <div class="font-black text-sm sm:text-base">${slot.title}</div>
+                <div class="font-black text-lg sm:text-2xl mt-0.5">${p.score} 分</div>
+              </div>
+            </div>
+          `;
+        }).join('');
+        playSound('correct');
+      }
+
+      /* -------------------------------------------------------------------
+         STUDENT FLOW
+         ------------------------------------------------------------------- */
+      function showStudentView(viewName) {
+        kEls.stuJoinView.classList.toggle('hidden', viewName !== 'join');
+        kEls.stuLobbyView.classList.toggle('hidden', viewName !== 'lobby');
+        kEls.stuQuestionView.classList.toggle('hidden', viewName !== 'question');
+        kEls.stuResultView.classList.toggle('hidden', viewName !== 'result');
+        kEls.stuRankView.classList.toggle('hidden', viewName !== 'rank');
+      }
+
+      async function studentJoinRoom() {
+        kEls.stuJoinError.classList.add('hidden');
+        const code = kEls.stuRoomInput.value.trim();
+        const name = kEls.stuNameInput.value.trim();
+
+        if (!/^\d{4}$/.test(code)) {
+          kEls.stuJoinError.textContent = '請輸入正確嘅 4 位數字房號！';
+          kEls.stuJoinError.classList.remove('hidden');
+          return;
+        }
+        if (!name) {
+          kEls.stuJoinError.textContent = '請輸入你嘅名稱或學號！';
+          kEls.stuJoinError.classList.remove('hidden');
+          return;
+        }
+
+        kEls.stuJoinRoomBtn.disabled = true;
+        kEls.stuJoinRoomBtn.textContent = '連線加入中...';
+
+        const avatar = STU_AVATARS[Math.floor(Math.random() * STU_AVATARS.length)];
+        const playerPayload = {
+          playerId: mp.clientId,
+          name,
+          avatar,
+          joinedAt: Date.now(),
+          answersJson: '{}'
+        };
+
+        try {
+          const res = await gasPost({ action: 'joinRoom', code, player: playerPayload });
+          if (!res || !res.ok) {
+            throw new Error((res && res.error) || '搵唔到呢個房間，請確認房號！');
+          }
+
+          mp.role = 'student';
+          mp.roomCode = code;
+          mp.studentName = name;
+          mp.studentAvatar = avatar;
+          mp.studentAnswers = {};
+          mp.studentSubmittedQ = -1;
+          mp.stuLastRenderedQ = -1;
+          mp.roomData = null;
+
+          kEls.stuRoomPill.textContent = `房號 ${code}`;
+          kEls.stuRoomPill.classList.remove('hidden');
+          kEls.stuScorePill.textContent = '0 分';
+          kEls.stuScorePill.classList.remove('hidden');
+          kEls.stuMyAvatar.textContent = avatar;
+          kEls.stuWelcomeName.textContent = `你好，${name}！`;
+
+          showStudentView('lobby');
+          playSound('correct');
+          subscribeToRoomAndPlayers(code, renderStudentState);
+        } catch (err) {
+          kEls.stuJoinError.textContent = err.message || '加入失敗，請再試一次。';
+          kEls.stuJoinError.classList.remove('hidden');
+        } finally {
+          kEls.stuJoinRoomBtn.disabled = false;
+          kEls.stuJoinRoomBtn.textContent = '加入房間 🚀';
+        }
+      }
+
+      function updateStudentKeypadDisplay(isKg) {
+        kEls.stuKpGRow.classList.toggle('hidden', isKg);
+        kEls.stuKpKgRow.classList.toggle('hidden', !isKg);
+
+        if (isKg) {
+          kEls.stuKpKgDisplay.textContent = mp.stuKpKgVal || '_';
+          kEls.stuKpKgDisplay.classList.toggle('text-slate-900', !!mp.stuKpKgVal);
+          kEls.stuKpKgDisplay.classList.toggle('text-slate-500/60', !mp.stuKpKgVal);
+
+          kEls.stuKpKgGDisplay.textContent = mp.stuKpVal || '___';
+          kEls.stuKpKgGDisplay.classList.toggle('text-slate-900', !!mp.stuKpVal);
+          kEls.stuKpKgGDisplay.classList.toggle('text-slate-500/60', !mp.stuKpVal);
+
+          const kgActive = mp.stuKpActiveField === 'kg';
+          kEls.stuKpKgBox.classList.toggle('ring-2', kgActive);
+          kEls.stuKpKgBox.classList.toggle('ring-emerald-500', kgActive);
+          kEls.stuKpKgGBox.classList.toggle('ring-2', !kgActive);
+          kEls.stuKpKgGBox.classList.toggle('ring-emerald-500', !kgActive);
+        } else {
+          kEls.stuKpDisplay.textContent = mp.stuKpVal || '___';
+          kEls.stuKpDisplay.classList.toggle('text-slate-900', !!mp.stuKpVal);
+          kEls.stuKpDisplay.classList.toggle('text-slate-500/60', !mp.stuKpVal);
+        }
+      }
+
+      function startStudentCountdown(startTime) {
+        if (mp.stuTimerInterval) clearInterval(mp.stuTimerInterval);
+        const tick = () => {
+          const elapsed = Math.floor((Date.now() - startTime) / 1000);
+          const remaining = Math.max(0, KAHOOT_TIME_LIMIT - elapsed);
+          kEls.stuTimerText.textContent = `${remaining}s`;
+          kEls.stuTimerText.classList.toggle('bg-rose-600', remaining <= 10);
+          kEls.stuTimerText.classList.toggle('bg-slate-900/80', remaining > 10);
+        };
+        tick();
+        mp.stuTimerInterval = setInterval(tick, 250);
+      }
+
+      async function studentSubmitAnswer(val) {
+        if (!mp.roomData || mp.roomData.status !== 'question') return;
+        const qIdx = mp.roomData.currentIndex || 0;
+        if (mp.studentSubmittedQ === qIdx || mp.studentAnswers[qIdx]) return;
+
+        const questions = JSON.parse(mp.roomData.questionsJson || '[]');
+        const q = questions[qIdx];
+        if (!q) return;
+
+        playSound('click');
+        mp.studentSubmittedQ = qIdx;
+
+        const scale = SCALES[q.scaleId];
+        const elapsedMs = Math.max(0, Date.now() - (mp.roomData.questionStartTime || Date.now()));
+        const isCorrect = val === q.weight;
+        const speedRatio = Math.max(0, Math.min(1, 1 - elapsedMs / (KAHOOT_TIME_LIMIT * 1000)));
+        const points = isCorrect ? Math.round(50 + speedRatio * 50) : 0;
+
+        mp.studentAnswers[qIdx] = { value: val, isCorrect, points, timeMs: elapsedMs };
+
+        kEls.stuMcPanel.classList.add('hidden');
+        kEls.stuKeypadPanel.classList.add('hidden');
+        kEls.stuSubmittedAnswerText.textContent = `你提交咗：${formatWeight(val, scale.unit)}`;
+        kEls.stuSubmittedBox.classList.remove('hidden');
+
+        try {
+          await gasPost({
+            action: 'submitAnswer',
+            code: mp.roomCode,
+            playerId: mp.clientId,
+            answersJson: JSON.stringify(mp.studentAnswers)
+          });
+        } catch (err) {
+          console.error('Submit answer error:', err);
+        }
+      }
+
+      function renderStudentState() {
+        if (mp.role !== 'student' || !mp.roomData) return;
+        const room = mp.roomData;
+        const questions = JSON.parse(room.questionsJson || '[]');
+        const qIdx = room.currentIndex || 0;
+        const q = questions[qIdx];
+
+        // Update top score pill
+        let myTotal = 0;
+        Object.values(mp.studentAnswers).forEach((a) => { myTotal += Number(a.points || 0); });
+        kEls.stuScorePill.textContent = `${myTotal} 分`;
+
+        if (room.status === 'lobby') {
+          showStudentView('lobby');
+          kEls.stuLobbyCount.textContent = `房間內目前有 ${mp.players.length} 位同學`;
+          return;
+        }
+
+        if (room.status === 'question' && q) {
+          showStudentView('question');
+          const scale = SCALES[q.scaleId];
+          kEls.stuQBadge.textContent = `第 ${qIdx + 1} / ${room.totalQuestions} 題`;
+          kEls.stuScaleHint.textContent = `磅款：${scale.name}`;
+
+          if (mp.stuLastRenderedQ !== qIdx) {
+            mp.stuLastRenderedQ = qIdx;
+            mp.stuKpVal = '';
+            mp.stuKpKgVal = '';
+            mp.stuKpActiveField = 'kg';
+            startStudentCountdown(room.questionStartTime || Date.now());
+
+            // Check if already answered
+            const alreadyAns = mp.studentAnswers[qIdx];
+            if (alreadyAns) {
+              mp.studentSubmittedQ = qIdx;
+              kEls.stuMcPanel.classList.add('hidden');
+              kEls.stuKeypadPanel.classList.add('hidden');
+              kEls.stuSubmittedAnswerText.textContent = `你提交咗：${formatWeight(alreadyAns.value, scale.unit)}`;
+              kEls.stuSubmittedBox.classList.remove('hidden');
+            } else {
+              kEls.stuSubmittedBox.classList.add('hidden');
+              if (room.inputMode === 'mc') {
+                kEls.stuKeypadPanel.classList.add('hidden');
+                kEls.stuMcPanel.classList.remove('hidden');
+                kEls.stuMcPanel.innerHTML = '';
+                q.options.forEach((opt, idx) => {
+                  const btn = document.createElement('button');
+                  btn.type = 'button';
+                  btn.className = `btn-game mc-glass-opt mc-color-${idx % 4} py-6 sm:py-8 px-3 rounded-2xl text-2xl sm:text-3xl font-black shadow-xl`;
+                  btn.textContent = formatWeight(opt, scale.unit);
+                  btn.addEventListener('click', () => studentSubmitAnswer(opt));
+                  kEls.stuMcPanel.appendChild(btn);
+                });
+              } else {
+                kEls.stuMcPanel.classList.add('hidden');
+                kEls.stuKeypadPanel.classList.remove('hidden');
+                updateStudentKeypadDisplay(scale.unit === 'kg');
+              }
+            }
+          }
+          return;
+        }
+
+        if (room.status === 'result' && q) {
+          if (mp.stuTimerInterval) { clearInterval(mp.stuTimerInterval); mp.stuTimerInterval = null; }
+          showStudentView('result');
+          const scale = SCALES[q.scaleId];
+          const ans = mp.studentAnswers[qIdx];
+          const correctLabel = formatWeight(q.weight, scale.unit);
+          kEls.stuResCorrectText.textContent = `正確答案：${correctLabel}`;
+
+          if (ans && ans.isCorrect) {
+            kEls.stuResultView.className = 'w-full max-w-md rounded-3xl p-6 text-center shadow-2xl border-2 border-emerald-300 bg-emerald-600/90 animate-bubble';
+            kEls.stuResEmoji.textContent = '🎉';
+            kEls.stuResTitle.textContent = '答啱咗！好犀利！';
+            kEls.stuResPoints.textContent = `+${ans.points} 分`;
+          } else if (ans) {
+            kEls.stuResultView.className = 'w-full max-w-md rounded-3xl p-6 text-center shadow-2xl border-2 border-rose-300 bg-rose-600/85 animate-bubble';
+            kEls.stuResEmoji.textContent = '😅';
+            kEls.stuResTitle.textContent = '差少少！下次再加油！';
+            kEls.stuResPoints.textContent = '+0 分';
+          } else {
+            kEls.stuResultView.className = 'w-full max-w-md rounded-3xl p-6 text-center shadow-2xl border-2 border-amber-300 bg-amber-600/85 animate-bubble';
+            kEls.stuResEmoji.textContent = '⏰';
+            kEls.stuResTitle.textContent = '時間到！未有作答';
+            kEls.stuResPoints.textContent = '+0 分';
+          }
+          return;
+        }
+
+        if (room.status === 'leaderboard' || room.status === 'finished' || room.status === 'aborted') {
+          showStudentView('rank');
+          kEls.stuRankHeader.textContent = room.status === 'leaderboard'
+            ? `🏆 第 ${qIdx + 1} / ${room.totalQuestions} 題後龍虎榜`
+            : '🎉 最終比賽成績 🏆';
+
+          const ranked = mp.players.map((p) => {
+            const s = computePlayerScoresAt(p, qIdx);
+            return { playerId: p.playerId, name: p.name, avatar: p.avatar || '🧑‍🎓', score: s.totalScore, prevScore: s.prevScore };
+          }).sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
+
+          const prevRanked = [...ranked].sort((a, b) => b.prevScore - a.prevScore || a.name.localeCompare(b.name));
+          const myIdx = ranked.findIndex((r) => r.playerId === mp.clientId);
+          const myPrevIdx = prevRanked.findIndex((r) => r.playerId === mp.clientId);
+
+          if (myIdx >= 0) {
+            const diff = myPrevIdx - myIdx;
+            kEls.stuMyRankBig.textContent = `第 ${myIdx + 1} 名`;
+            const diffText = qIdx > 0 && diff > 0
+              ? `▲ 上升 ${diff} 位！`
+              : qIdx > 0 && diff < 0
+              ? `▼ 下降 ${Math.abs(diff)} 位`
+              : '保持名次';
+            kEls.stuMyRankDelta.textContent = `總分：${ranked[myIdx].score} 分 • ${diffText}`;
+          }
+
+          kEls.stuMiniLb.innerHTML = ranked.slice(0, 5).map((r, i) => `
+            <div class="flex items-center justify-between px-3 py-2 rounded-xl ${r.playerId === mp.clientId ? 'bg-amber-400/25 border border-amber-300' : 'bg-white/10'}">
+              <div class="flex items-center gap-2 font-black text-sm">
+                <span class="w-6 text-center">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</span>
+                <span>${r.avatar}</span>
+                <span>${r.name}</span>
+              </div>
+              <span class="font-black text-amber-300 text-sm">${r.score} 分</span>
+            </div>
+          `).join('');
+        }
+      }
+
+      /* -------------------------------------------------------------------
+         KAHOOT UI EVENT BINDINGS
+         ------------------------------------------------------------------- */
+      kEls.openKahootBtn.addEventListener('click', () => {
+        playSound('click');
+        kEls.roleModalError.classList.add('hidden');
+        refreshGasConfigUi();
+        kEls.kahootRoleModal.classList.remove('hidden');
+      });
+
+      kEls.saveGasUrlBtn.addEventListener('click', () => {
+        playSound('click');
+        const url = kEls.gasUrlInput.value.trim();
+        if (!url.startsWith('https://script.google.com/')) {
+          kEls.roleModalError.textContent = '請貼上正確嘅 GAS 網址（以 https://script.google.com/ 開頭，/exec 結尾）';
+          kEls.roleModalError.classList.remove('hidden');
+          return;
+        }
+        localStorage.setItem(GAS_STORAGE_KEY, url);
+        kEls.roleModalError.classList.add('hidden');
+        refreshGasConfigUi();
+      });
+
+      kEls.closeRoleModalBtn.addEventListener('click', () => {
+        playSound('click');
+        kEls.kahootRoleModal.classList.add('hidden');
+      });
+
+      kEls.chooseTeacherBtn.addEventListener('click', () => {
+        playSound('click');
+        if (!getGasUrl()) {
+          kEls.roleModalError.textContent = '請先喺上面貼上 GAS 連線網址並按「儲存」！';
+          kEls.roleModalError.classList.remove('hidden');
+          return;
+        }
+        kEls.kahootRoleModal.classList.add('hidden');
+        updateTeacherSetupPills();
+        kEls.teacherSetupError.classList.add('hidden');
+        kEls.kahootTeacherSetupModal.classList.remove('hidden');
+      });
+
+      kEls.chooseStudentBtn.addEventListener('click', () => {
+        playSound('click');
+        if (!getGasUrl()) {
+          kEls.roleModalError.textContent = '請先喺上面貼上 GAS 連線網址並按「儲存」！';
+          kEls.roleModalError.classList.remove('hidden');
+          return;
+        }
+        kEls.kahootRoleModal.classList.add('hidden');
+        document.body.classList.add('in-student-kahoot');
+        kEls.kahootStudentOverlay.classList.remove('hidden');
+        kEls.stuRoomPill.classList.add('hidden');
+        kEls.stuScorePill.classList.add('hidden');
+        kEls.stuJoinError.classList.add('hidden');
+        showStudentView('join');
+      });
+
+      kEls.closeTeacherSetupBtn.addEventListener('click', () => {
+        playSound('click');
+        kEls.kahootTeacherSetupModal.classList.add('hidden');
+      });
+
+      document.querySelectorAll('.ksetup-scale-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          playSound('click');
+          mp.setupScale = btn.dataset.kscale;
+          updateTeacherSetupPills();
+        });
+      });
+
+      document.querySelectorAll('.ksetup-mode-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          playSound('click');
+          mp.setupMode = btn.dataset.kmode;
+          updateTeacherSetupPills();
+        });
+      });
+
+      kEls.createKahootRoomBtn.addEventListener('click', createTeacherRoom);
+
+      // Teacher Lobby & Match Controls
+      kEls.lobbyCloseBtn.addEventListener('click', async () => {
+        playSound('click');
+        await teacherUpdateRoom({ status: 'aborted' });
+        cleanupMultiplayer();
+      });
+
+      kEls.lobbyStartGameBtn.addEventListener('click', () => {
+        playSound('click');
+        teacherUpdateRoom({
+          status: 'question',
+          currentIndex: 0,
+          questionStartTime: Date.now()
+        });
+      });
+
+      kEls.hudSettleNowBtn.addEventListener('click', () => {
+        playSound('click');
+        teacherUpdateRoom({ status: 'result' });
+      });
+
+      const handleTeacherAbort = () => {
+        playSound('click');
+        teacherUpdateRoom({ status: 'aborted' });
+      };
+      kEls.hudAbortBtn.addEventListener('click', handleTeacherAbort);
+      kEls.resultAbortBtn.addEventListener('click', handleTeacherAbort);
+      kEls.lbAbortBtn.addEventListener('click', handleTeacherAbort);
+
+      // Teaching Review toggle (Hide overlay -> inspect scale & hints -> return)
+      kEls.resultShowScaleBtn.addEventListener('click', () => {
+        playSound('click');
+        mp.isTeachingReview = true;
+        renderTeacherState();
+      });
+
+      kEls.reviewBackResultBtn.addEventListener('click', () => {
+        playSound('click');
+        mp.isTeachingReview = false;
+        renderTeacherState();
+      });
+
+      kEls.reviewToLbBtn.addEventListener('click', () => {
+        playSound('click');
+        mp.isTeachingReview = false;
+        teacherUpdateRoom({ status: 'leaderboard' });
+      });
+
+      kEls.resultNextLbBtn.addEventListener('click', () => {
+        playSound('click');
+        teacherUpdateRoom({ status: 'leaderboard' });
+      });
+
+      kEls.lbNextQuestionBtn.addEventListener('click', () => {
+        playSound('click');
+        if (!mp.roomData) return;
+        const nextIdx = (mp.roomData.currentIndex || 0) + 1;
+        if (nextIdx < mp.roomData.totalQuestions) {
+          teacherUpdateRoom({
+            status: 'question',
+            currentIndex: nextIdx,
+            questionStartTime: Date.now()
+          });
+        } else {
+          teacherUpdateRoom({ status: 'finished' });
+        }
+      });
+
+      kEls.podiumNewGameBtn.addEventListener('click', () => {
+        playSound('click');
+        cleanupMultiplayer();
+        updateTeacherSetupPills();
+        kEls.kahootTeacherSetupModal.classList.remove('hidden');
+      });
+
+      kEls.podiumExitBtn.addEventListener('click', () => {
+        playSound('click');
+        cleanupMultiplayer();
+      });
+
+      // Student Controls
+      kEls.stuJoinRoomBtn.addEventListener('click', studentJoinRoom);
+      kEls.stuExitBtn.addEventListener('click', () => {
+        playSound('click');
+        cleanupMultiplayer();
+      });
+
+      kEls.stuKpKgBox.addEventListener('click', () => {
+        playSound('click');
+        mp.stuKpActiveField = 'kg';
+        updateStudentKeypadDisplay(true);
+      });
+      kEls.stuKpKgGBox.addEventListener('click', () => {
+        playSound('click');
+        mp.stuKpActiveField = 'g';
+        updateStudentKeypadDisplay(true);
+      });
+
+      document.querySelectorAll('.stu-kp-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          if (!mp.roomData) return;
+          const questions = JSON.parse(mp.roomData.questionsJson || '[]');
+          const q = questions[mp.roomData.currentIndex || 0];
+          if (!q) return;
+          const isKg = SCALES[q.scaleId].unit === 'kg';
+          const key = btn.dataset.sk;
+          playSound('click');
+
+          if (key === 'clear') {
+            mp.stuKpVal = '';
+            mp.stuKpKgVal = '';
+            mp.stuKpActiveField = 'kg';
+          } else if (key === 'back') {
+            if (isKg) {
+              if (mp.stuKpActiveField === 'g') {
+                if (mp.stuKpVal.length > 0) mp.stuKpVal = mp.stuKpVal.slice(0, -1);
+                else { mp.stuKpActiveField = 'kg'; mp.stuKpKgVal = mp.stuKpKgVal.slice(0, -1); }
+              } else {
+                mp.stuKpKgVal = mp.stuKpKgVal.slice(0, -1);
+              }
+            } else {
+              mp.stuKpVal = mp.stuKpVal.slice(0, -1);
+            }
+          } else {
+            if (isKg) {
+              if (mp.stuKpActiveField === 'kg') {
+                mp.stuKpKgVal = key;
+                mp.stuKpActiveField = 'g';
+              } else if (mp.stuKpVal.length < 3) {
+                mp.stuKpVal += key;
+              }
+            } else if (mp.stuKpVal.length < 4) {
+              mp.stuKpVal += key;
+            }
+          }
+          updateStudentKeypadDisplay(isKg);
+        });
+      });
+
+      kEls.stuSubmitKpBtn.addEventListener('click', () => {
+        if (!mp.roomData) return;
+        const questions = JSON.parse(mp.roomData.questionsJson || '[]');
+        const q = questions[mp.roomData.currentIndex || 0];
+        if (!q) return;
+        const isKg = SCALES[q.scaleId].unit === 'kg';
+
+        if (isKg) {
+          if (!mp.stuKpKgVal && !mp.stuKpVal) return;
+          const val = parseInt(mp.stuKpKgVal || '0', 10) * 1000 + parseInt(mp.stuKpVal || '0', 10);
+          if (!Number.isNaN(val)) studentSubmitAnswer(val);
+        } else {
+          if (!mp.stuKpVal) return;
+          const val = parseInt(mp.stuKpVal, 10);
+          if (!Number.isNaN(val)) studentSubmitAnswer(val);
+        }
+      });
+
+      function bootApp() {
         fitStageToViewport();
         setInputMode('mc');
         setScaleFilter('mixed', false);
         loadNextCustomer();
         animatePhysics();
-      });
+      }
+
+      if (document.readyState === 'complete') {
+        bootApp();
+      } else {
+        window.addEventListener('load', bootApp);
+      }
     })();
   </script>
 </body>
