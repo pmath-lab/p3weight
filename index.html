@@ -1276,8 +1276,8 @@
               class="w-full bg-white text-slate-900 font-black text-2xl text-center tracking-[0.25em] rounded-2xl py-3 px-4 outline-none focus:ring-4 focus:ring-violet-400" />
           </div>
           <div>
-            <label class="block text-sm font-bold text-violet-200 mb-1">你的名稱（姓名／學號）</label>
-            <input id="stuNameInput" type="text" maxlength="12" placeholder="例如：小明 3A"
+            <label class="block text-sm font-bold text-violet-200 mb-1">你的名稱（班別 班號）</label>
+            <input id="stuNameInput" type="text" maxlength="12" placeholder="例如：3A12"
               class="w-full bg-white text-slate-900 font-black text-xl text-center rounded-2xl py-3 px-4 outline-none focus:ring-4 focus:ring-emerald-400" />
           </div>
           <button id="stuJoinRoomBtn" type="button"
@@ -3004,7 +3004,8 @@
 
       const KAHOOT_TIME_LIMIT = 40; // 40 seconds per question
       const KAHOOT_TOTAL_Q = 10;    // 10 questions per match
-      const POLL_INTERVAL_MS = 1200; // Poll GAS server every 1.2s
+      const TEACHER_POLL_MS = 1500; // Teacher polls every 1.5s
+      const STUDENT_POLL_MS = 2000; // Students poll every 2.0s (+ random jitter for 30-player smoothness)
       const STU_AVATARS = ['🐶', '🐱', '🐼', '🦊', '🐰', '🦁', '🐸', '🐨', '🐯', '🦄', '🐧', '🐻'];
 
       // Generate a unique client ID per browser tab (allows testing Teacher + Student in 2 tabs)
@@ -3106,6 +3107,8 @@
         roomCode: null,
         roomData: null,
         players: [],                // list of players in current room
+        playerCount: 0,             // lightweight player count for student lobby
+        serverTimeOffset: 0,        // serverTime - Date.now() for synced countdowns
         pollTimer: null,
         pollInFlight: false,
 
@@ -3127,6 +3130,7 @@
         stuKpActiveField: 'kg',
         stuTimerInterval: null,
         stuLastRenderedQ: -1,
+        stuQuestionShownAt: 0,
         stuPrevRank: null
       };
 
@@ -3320,7 +3324,7 @@
       }
 
       function cleanupMultiplayer() {
-        if (mp.pollTimer) { clearInterval(mp.pollTimer); mp.pollTimer = null; }
+        if (mp.pollTimer) { clearTimeout(mp.pollTimer); mp.pollTimer = null; }
         mp.pollInFlight = false;
         if (mp.teacherTimerInterval) { clearInterval(mp.teacherTimerInterval); mp.teacherTimerInterval = null; }
         if (mp.stuTimerInterval) { clearInterval(mp.stuTimerInterval); mp.stuTimerInterval = null; }
@@ -3330,6 +3334,8 @@
         mp.roomCode = null;
         mp.roomData = null;
         mp.players = [];
+        mp.playerCount = 0;
+        mp.serverTimeOffset = 0;
         mp.isTeachingReview = false;
         mp.lastRenderedStatusKey = '';
         mp.studentAnswers = {};
@@ -3355,37 +3361,55 @@
       }
 
       function subscribeToRoomAndPlayers(roomCode, onUpdate) {
-        if (mp.pollTimer) clearInterval(mp.pollTimer);
+        if (mp.pollTimer) { clearTimeout(mp.pollTimer); mp.pollTimer = null; }
         mp.pollInFlight = false;
 
+        const scheduleNext = () => {
+          if (!mp.roomCode || mp.roomCode !== roomCode) return;
+          const baseDelay = mp.role === 'teacher' ? TEACHER_POLL_MS : STUDENT_POLL_MS;
+          // Random jitter spreads 30 student devices evenly across the window
+          const jitter = mp.role === 'student' ? Math.floor(Math.random() * 650) : 0;
+          mp.pollTimer = setTimeout(doPoll, baseDelay + jitter);
+        };
+
         const doPoll = async () => {
-          if (mp.pollInFlight || !mp.roomCode) return;
+          if (mp.pollInFlight || !mp.roomCode || mp.roomCode !== roomCode) return;
           mp.pollInFlight = true;
           try {
-            const data = await gasGet({ action: 'poll', code: roomCode });
+            const data = await gasGet({ action: 'poll', code: roomCode, role: mp.role || 'student' });
             if (data && data.ok && data.room) {
-              // Teacher is the single source of truth for roomData: never overwrite local room state with delayed server polls!
+              if (data.serverTime) {
+                mp.serverTimeOffset = Number(data.serverTime) - Date.now();
+              }
+              if (typeof data.playerCount === 'number') {
+                mp.playerCount = data.playerCount;
+              }
+
+              // Use server monotonic version (immune to device clock skew!)
               if (mp.role === 'student') {
-                const incomingTs = Number(data.room.updatedAt || 0);
-                const currentTs = Number((mp.roomData && mp.roomData.updatedAt) || 0);
-                if (!mp.roomData || incomingTs >= currentTs) {
+                const incomingVer = Number(data.room.version || 0);
+                const currentVer = Number((mp.roomData && mp.roomData.version) || 0);
+                if (!mp.roomData || incomingVer >= currentVer) {
                   mp.roomData = data.room;
                 }
               }
-              const list = Array.isArray(data.players) ? data.players : [];
-              list.sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
-              mp.players = list;
+
+              if (Array.isArray(data.players) && (mp.role === 'teacher' || data.players.length > 0)) {
+                const list = data.players;
+                list.sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
+                mp.players = list;
+              }
               onUpdate();
             }
           } catch (err) {
             console.error('GAS poll error:', err);
           } finally {
             mp.pollInFlight = false;
+            scheduleNext();
           }
         };
 
         doPoll();
-        mp.pollTimer = setInterval(doPoll, POLL_INTERVAL_MS);
       }
 
       /* -------------------------------------------------------------------
@@ -3438,10 +3462,14 @@
             throw new Error((res && res.error) || '伺服器回應異常');
           }
 
+          if (res.serverTime) {
+            mp.serverTimeOffset = Number(res.serverTime) - Date.now();
+          }
           mp.role = 'teacher';
           mp.roomCode = roomCode;
-          mp.roomData = roomPayload;
+          mp.roomData = res.room || roomPayload;
           mp.players = [];
+          mp.playerCount = 0;
           mp.isTeachingReview = false;
           mp.lastRenderedStatusKey = '';
 
@@ -3493,11 +3521,21 @@
         if (!mp.roomCode) return;
         // Optimistic UI update for instant teacher responsiveness
         if (mp.roomData) {
-          mp.roomData = { ...mp.roomData, ...patch, updatedAt: Date.now() };
+          const syncedNow = Date.now() + (mp.serverTimeOffset || 0);
+          const localPatch = patch.status === 'question' ? { ...patch, questionStartTime: syncedNow } : patch;
+          mp.roomData = {
+            ...mp.roomData,
+            ...localPatch,
+            version: Number(mp.roomData.version || 1) + 1,
+            updatedAt: syncedNow
+          };
           renderTeacherState();
         }
         try {
-          await gasPost({ action: 'updateRoom', code: mp.roomCode, patch });
+          const res = await gasPost({ action: 'updateRoom', code: mp.roomCode, patch });
+          if (res && res.ok && res.serverTime) {
+            mp.serverTimeOffset = Number(res.serverTime) - Date.now();
+          }
         } catch (err) {
           console.error('Update room failed:', err);
         }
@@ -3630,7 +3668,8 @@
       function startTeacherCountdown(startTime) {
         if (mp.teacherTimerInterval) clearInterval(mp.teacherTimerInterval);
         const tick = () => {
-          const elapsed = Math.floor((Date.now() - startTime) / 1000);
+          const nowSynced = Date.now() + (mp.serverTimeOffset || 0);
+          const elapsed = Math.floor((nowSynced - startTime) / 1000);
           const remaining = Math.max(0, KAHOOT_TIME_LIMIT - elapsed);
           kEls.hudTimerText.textContent = remaining;
           if (remaining <= 10) {
@@ -3941,11 +3980,27 @@
         };
 
         try {
-          const res = await gasPost({ action: 'joinRoom', code, player: playerPayload });
+          let res = null;
+          let lastErr = null;
+          // Auto-retry once if 30 students hit GAS simultaneously
+          for (let attempt = 0; attempt < 2; attempt++) {
+            try {
+              res = await gasPost({ action: 'joinRoom', code, player: playerPayload });
+              if (res && res.ok) break;
+              lastErr = new Error((res && res.error) || '搵唔到呢個房間，請確認房號！');
+              if (res && res.error && res.error.includes('搵唔到')) break;
+            } catch (e) {
+              lastErr = e;
+            }
+            await new Promise((r) => setTimeout(r, 600));
+          }
           if (!res || !res.ok) {
-            throw new Error((res && res.error) || '搵唔到呢個房間，請確認房號！');
+            throw lastErr || new Error('搵唔到呢個房間，請確認房號！');
           }
 
+          if (res.serverTime) {
+            mp.serverTimeOffset = Number(res.serverTime) - Date.now();
+          }
           mp.role = 'student';
           mp.roomCode = code;
           mp.studentName = name;
@@ -3953,7 +4008,8 @@
           mp.studentAnswers = {};
           mp.studentSubmittedQ = -1;
           mp.stuLastRenderedQ = -1;
-          mp.roomData = null;
+          mp.roomData = res.room || null;
+          mp.playerCount = res.playerCount || 1;
 
           kEls.stuRoomPill.textContent = `房號 ${code}`;
           kEls.stuRoomPill.classList.remove('hidden');
@@ -3962,7 +4018,11 @@
           kEls.stuMyAvatar.textContent = avatar;
           kEls.stuWelcomeName.textContent = `你好，${name}！`;
 
-          showStudentView('lobby');
+          if (mp.roomData) {
+            renderStudentState();
+          } else {
+            showStudentView('lobby');
+          }
           playSound('correct');
           subscribeToRoomAndPlayers(code, renderStudentState);
         } catch (err) {
@@ -4001,9 +4061,10 @@
 
       function startStudentCountdown(startTime) {
         if (mp.stuTimerInterval) clearInterval(mp.stuTimerInterval);
+        const localShownAt = mp.stuQuestionShownAt || performance.now();
         const tick = () => {
-          const elapsed = Math.floor((Date.now() - startTime) / 1000);
-          const remaining = Math.max(0, KAHOOT_TIME_LIMIT - elapsed);
+          const elapsed = Math.floor((performance.now() - localShownAt) / 1000);
+          const remaining = Math.max(0, Math.min(KAHOOT_TIME_LIMIT, KAHOOT_TIME_LIMIT - Math.max(0, elapsed)));
           kEls.stuTimerText.textContent = `${remaining}s`;
           kEls.stuTimerText.classList.toggle('bg-rose-600', remaining <= 10);
           kEls.stuTimerText.classList.toggle('bg-slate-900/80', remaining > 10);
@@ -4025,27 +4086,36 @@
         mp.studentSubmittedQ = qIdx;
 
         const scale = SCALES[q.scaleId];
-        const elapsedMs = Math.max(0, Date.now() - (mp.roomData.questionStartTime || Date.now()));
+        const limitMs = KAHOOT_TIME_LIMIT * 1000;
+        const shownAt = mp.stuQuestionShownAt || performance.now();
+        const elapsedMs = Math.max(0, Math.min(limitMs, Math.round(performance.now() - shownAt)));
         const isCorrect = val === q.weight;
-        const speedRatio = Math.max(0, Math.min(1, 1 - elapsedMs / (KAHOOT_TIME_LIMIT * 1000)));
-        const points = isCorrect ? Math.round(50 + speedRatio * 50) : 0;
+        // 越快答越高分：最高 100 分，最低 50 分（答錯 0 分）
+        const speedRatio = Math.max(0, Math.min(1, 1 - elapsedMs / limitMs));
+        const points = isCorrect ? Math.max(50, Math.min(100, Math.round(50 + speedRatio * 50))) : 0;
 
         mp.studentAnswers[qIdx] = { value: val, isCorrect, points, timeMs: elapsedMs };
 
+        const secText = (elapsedMs / 1000).toFixed(1);
         kEls.stuMcPanel.classList.add('hidden');
         kEls.stuKeypadPanel.classList.add('hidden');
-        kEls.stuSubmittedAnswerText.textContent = `你提交咗：${formatWeight(val, scale.unit)}`;
+        kEls.stuSubmittedAnswerText.textContent = `你提交咗：${formatWeight(val, scale.unit)}（用時 ${secText} 秒）`;
         kEls.stuSubmittedBox.classList.remove('hidden');
 
-        try {
-          await gasPost({
-            action: 'submitAnswer',
-            code: mp.roomCode,
-            playerId: mp.clientId,
-            answersJson: JSON.stringify(mp.studentAnswers)
-          });
-        } catch (err) {
-          console.error('Submit answer error:', err);
+        // Auto-retry up to 3 times so answers are never lost when 30 students submit together
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            const res = await gasPost({
+              action: 'submitAnswer',
+              code: mp.roomCode,
+              playerId: mp.clientId,
+              answersJson: JSON.stringify(mp.studentAnswers)
+            });
+            if (res && res.ok) break;
+          } catch (err) {
+            console.error(`Submit answer retry ${attempt + 1}:`, err);
+          }
+          await new Promise((r) => setTimeout(r, 450 * (attempt + 1)));
         }
       }
 
@@ -4063,7 +4133,8 @@
 
         if (room.status === 'lobby') {
           showStudentView('lobby');
-          kEls.stuLobbyCount.textContent = `房間內目前有 ${mp.players.length} 位同學`;
+          const cnt = Math.max(1, mp.playerCount || mp.players.length || 1);
+          kEls.stuLobbyCount.textContent = `房間內目前有 ${cnt} 位同學`;
           return;
         }
 
@@ -4075,6 +4146,7 @@
 
           if (mp.stuLastRenderedQ !== qIdx) {
             mp.stuLastRenderedQ = qIdx;
+            mp.stuQuestionShownAt = performance.now();
             mp.stuKpVal = '';
             mp.stuKpKgVal = '';
             mp.stuKpActiveField = 'kg';
@@ -4121,9 +4193,10 @@
           kEls.stuResCorrectText.textContent = `正確答案：${correctLabel}`;
 
           if (ans && ans.isCorrect) {
+            const secText = ((ans.timeMs || 0) / 1000).toFixed(1);
             kEls.stuResultView.className = 'w-full max-w-md rounded-3xl p-6 text-center shadow-2xl border-2 border-emerald-300 bg-emerald-600/90 animate-bubble';
             kEls.stuResEmoji.textContent = '🎉';
-            kEls.stuResTitle.textContent = '答啱咗！好犀利！';
+            kEls.stuResTitle.textContent = `答啱咗！用時 ${secText} 秒`;
             kEls.stuResPoints.textContent = `+${ans.points} 分`;
           } else if (ans) {
             kEls.stuResultView.className = 'w-full max-w-md rounded-3xl p-6 text-center shadow-2xl border-2 border-rose-300 bg-rose-600/85 animate-bubble';
